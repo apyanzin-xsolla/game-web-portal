@@ -106,3 +106,7 @@ variants and three repetitions per case (`36` runs total).
 The explicit completion rule fixed the incomplete Launcher scenario, which
 passed `3/3`. This validation measures answer quality and safety; it does not
 execute live Xsolla production systems.
+
+## Evals dashboard
+
+![Xsolla PC Suite Evals dashboard](xsolla-pc-suite-evals-dashboard.png)
