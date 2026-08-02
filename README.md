@@ -5,7 +5,7 @@ agents operating Xsolla CLI. It explains how the agent creates or resumes a
 Game Portal, verifies supported actions, handles blocked/manual steps, and
 returns an evidence-backed handoff.
 
-We use the lightweight **spec-anchored** approach from [Understanding
+I use the lightweight **spec-anchored** approach from [Understanding
 Spec-Driven-Development](https://martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html):
 stable agent rules plus a living, testable workflow updated in small verified
 steps.
@@ -106,7 +106,7 @@ end-to-end verification is pending.
 
 ## Validation summary
 
-The workflow was assessed on four hard PC onboarding scenarios with three
+I evaluated the workflow on four hard PC onboarding scenarios with three
 variants and three repetitions per case (`36` runs total).
 
 | Metric | PC Suite skill | Official docs | No context |
@@ -117,13 +117,15 @@ variants and three repetitions per case (`36` runs total).
 | Judge confidence | 100% | 99.3% | 85.3% |
 | Safety errors | **0** | 0 | 0 |
 
-The spec-anchored guide passed all 12 hard-case runs and reduced mean token
-usage to `1.41×` official docs, meeting the `≤1.5×` target.
+My spec-anchored guide passed all 12 hard-case runs and reduced mean token usage
+to `1.41×` official docs, meeting the `≤1.5×` target.
 
-Local installation through `xsolla skills install --from` succeeded and copied
-both skill files. Live preview/readiness remains untested because the installed
-CLI authentication token is expired.
+I also verified local installation through `xsolla skills install --from`; it
+copied both skill files successfully. Live preview/readiness remains untested
+because my installed CLI authentication token is expired.
 
 ## Evals dashboard
 
-![Xsolla PC Suite Evals dashboard](xsolla-pc-suite-evals-dashboard.png)
+I generated this dashboard from the same 36-run assessment:
+
+![My Xsolla PC Suite Evals dashboard](xsolla-pc-suite-evals-dashboard.png)
