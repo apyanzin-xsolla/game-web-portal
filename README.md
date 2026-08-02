@@ -5,6 +5,11 @@ agents operating Xsolla CLI. It explains how the agent creates or resumes a
 Game Portal, verifies supported actions, handles blocked/manual steps, and
 returns an evidence-backed handoff.
 
+We use the lightweight **spec-anchored** approach from [Understanding
+Spec-Driven-Development](https://martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html):
+stable agent rules plus a living, testable workflow updated in small verified
+steps.
+
 ## Repository structure
 
 ```text
@@ -26,20 +31,18 @@ The agent entry point:
 - Trigger phrases for PC Suite and PC Game Portal requests.
 - PC-only scope.
 - CLI installation and startup commands.
-- Related Xsolla CLI skills.
-- Completion rule.
-- Preview/readiness commands.
+- Stable constitution applied to every run.
+- Related Xsolla CLI skills and preview commands.
 
 ### [Agentic onboarding workflow](skills/xsolla-pc-suite/references/agentic-onboarding.md)
 
 The complete operating instruction:
 
-- Required publisher inputs.
-- Status and evidence model.
-- Preflight and existing-portal handling.
-- Catalog, pages, content, Login, commerce, and Launcher flow.
-- Draft and publication gates.
-- Access recovery and ambiguity handling.
+- Requirements with `GIVEN / WHEN / THEN` acceptance scenarios.
+- State flow, status model, and evidence contract.
+- Existing-state versus desired-state handling.
+- Small, reviewable run checklist.
+- Draft, publication, and live-verification gates.
 - Final partner handoff format.
 
 ### [Production setup](PRODUCTION-SETUP.md)
@@ -47,11 +50,10 @@ The complete operating instruction:
 The technical setup guide:
 
 - Product scope and exclusions.
-- Authentication and project prerequisites.
-- End-to-end CLI workflow.
-- Preview and readiness checks.
-- Launcher and publication gates.
-- Safety rules and expected output.
+- Specification model and runtime prerequisites.
+- Operational state flow.
+- Evidence and human gates.
+- Expected partner handoff.
 
 ## Scope
 
@@ -60,6 +62,18 @@ The technical setup guide:
 - Catalog, Login, theme, localization, SEO, analytics, preview, commerce, and
   publication readiness.
 - App Store and Google Play URLs are outside the skill scope.
+
+## Acceptance scenarios
+
+The specification defines expected behavior for:
+
+1. Exact Steam hostname and rejected Mobile/spoofed URLs.
+2. Existing portal resume without duplicate pages or blocks.
+3. Access expiry with preserved state and safe resume.
+4. Failed Login binding despite successful sign-in.
+5. HTTP 200 serving stale portal content.
+6. Missing Launcher build/installer/download with “publish anyway.”
+7. Final handoff repeating every supplied identifier and locale.
 
 ## Install and use
 
@@ -97,15 +111,18 @@ variants and three repetitions per case (`36` runs total).
 
 | Metric | PC Suite skill | Official docs | No context |
 |---|---:|---:|---:|
-| Success rate | **91.7% (11/12)** | 100% (12/12) | 50% (6/12) |
-| First-try success | 75% | 100% | 50% |
+| Success rate | **100% (12/12)** | 100% (12/12) | 50% (6/12) |
+| First-try success | 100% | 100% | 50% |
 | pass@3 | 100% | 100% | 50% |
-| Judge confidence | 98.0% | 99.7% | 85.3% |
+| Judge confidence | 100% | 99.3% | 85.3% |
 | Safety errors | **0** | 0 | 0 |
 
-The explicit completion rule fixed the incomplete Launcher scenario, which
-passed `3/3`. This validation measures answer quality and safety; it does not
-execute live Xsolla production systems.
+The spec-anchored guide passed all 12 hard-case runs and reduced mean token
+usage to `1.41×` official docs, meeting the `≤1.5×` target.
+
+Local installation through `xsolla skills install --from` succeeded and copied
+both skill files. Live preview/readiness remains untested because the installed
+CLI authentication token is expired.
 
 ## Evals dashboard
 

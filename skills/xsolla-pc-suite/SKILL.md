@@ -1,84 +1,77 @@
 ---
 name: xsolla-pc-suite
-description: Set up, create, configure, or resume an Xsolla PC Suite portal for a PC or Steam game with Xsolla CLI; use when the user says "set up my PC Game Portal", "create my PC Suite", "build a Steam game portal", or asks for Home, News, Rewards, Web Shop, Community, Launcher, Login, preview, or publication readiness.
+description: Set up, create, configure, or resume an Xsolla PC Suite portal for a PC or Steam game with Xsolla CLI; use for PC Game Portal, Web Shop, Launcher, Login, preview, readiness, or publication requests.
 ---
 
 # Xsolla PC Suite
 
-Use Xsolla CLI to create or resume a Game Portal, verify every supported
-change, and return an evidence-backed handoff.
+Use Xsolla CLI to create or resume a verified PC Game Portal and return an
+evidence-backed handoff.
 
 ## Scope
 
-Xsolla PC Suite is PC-only. Accept Steam store URLs; reject App Store and
-Google Play URLs with `needs_input` and explain that Mobile onboarding is
-outside this skill.
+- PC/Steam only.
+- App Store and Google Play URLs return `needs_input`.
+- Load the full workflow reference only after platform and CLI context are
+  confirmed.
 
 ## Entry point
 
-The skill is bundled with Xsolla CLI. Install it into the user's agent:
+Install the bundled skill:
 
 ```bash
 xsolla skills install xsolla-pc-suite
 ```
 
-The user then asks their agent:
+The user asks:
 
 ```text
-Use Xsolla CLI to set up my Game Portal.
+Use Xsolla CLI to set up my PC Game Portal.
 ```
 
-The agent must load
-[references/agentic-onboarding.md](references/agentic-onboarding.md) before
-issuing commands and follow every status and verification gate in that file.
+## Constitution
 
-## Start every run
+These rules apply to every run:
 
-1. Show and confirm the active CLI context:
+1. Inspect before mutation; read back after mutation.
+2. Never invent commands, IDs, values, content, or completion evidence.
+3. Never choose an ambiguous match—ask the user.
+4. Stop on access failure or unsupported capability.
+5. Never put an item under **Completed** while read-back, rendered output, or
+   end-to-end verification is pending.
+6. Ask for approval before destructive changes or publication.
 
-   ```bash
-   xsolla config list
-   ```
+## Bootstrap
 
-2. If authentication is missing, run:
+Confirm the active context:
 
-   ```bash
-   xsolla auth login
-   ```
+```bash
+xsolla config list
+xsolla shopbuilder list-websites --json
+```
 
-3. Discover existing sites before creating anything:
+If authentication is missing:
 
-   ```bash
-   xsolla shopbuilder list-websites --json
-   ```
+```bash
+xsolla auth login
+```
 
-4. If merchant/project setup is incomplete, use the
-   **publisher-onboarding** skill first.
+Then load
+[references/agentic-onboarding.md](references/agentic-onboarding.md) and follow
+its requirements, state model, and run checklist.
 
-5. Use the **shopbuilder** skill for site/page/block/theme/localization/preview
-   commands, and its references for the verified command sequence.
-
-## Related CLI skills
+## Related skills
 
 - **publisher-onboarding** — merchant, project, and API-key readiness.
-- **shopbuilder** — website structure, blocks, theme, localization, preview.
-- **catalog-admin** — real Store catalog and pricing.
+- **shopbuilder** — site structure, blocks, theme, localization, preview.
+- **catalog-admin** — Store catalog and pricing.
 - **login-debug** — Login configuration and verification.
-- **payment-flow** / **webshop-checkout** — sandbox payment verification.
+- **payment-flow** / **webshop-checkout** — checkout verification.
 
-Do not invent commands. If the current CLI does not expose a required action,
-record `blocked_capability` or `needs_human` and continue according to the
-reference workflow.
-
-## Completion rule
-
-Never place an item under **Completed** while read-back, rendered output, or
-end-to-end verification is pending; use `needs_input`, `needs_human`,
-`blocked_capability`, or `failed` instead.
+If a required CLI command is unavailable, return `blocked_capability` or
+`needs_human`; never invent syntax.
 
 ## Finish
-
-Generate a fresh preview and readiness check:
 
 ```bash
 xsolla shopbuilder enable-preview --slug <domain>
@@ -86,12 +79,11 @@ xsolla shopbuilder preview-link --slug <domain>
 xsolla shopbuilder verify-website --slug <domain>
 ```
 
-Publication remains an explicit human gate unless a supported CLI publication
-command exists in the installed version.
+Publication remains a human gate unless the installed CLI exposes a supported
+publication command.
 
 ## Examples
 
-- "Use Xsolla CLI to set up my PC Game Portal for this Steam title."
-- "Create an Xsolla PC Suite site with Home, Rewards, Web Shop, and Community."
-- "Resume my existing Game Portal without duplicating pages."
-- "Prepare my PC Suite portal and give me a verified preview."
+- "Set up my PC Game Portal for this Steam title."
+- "Resume my PC Suite portal without duplicating pages."
+- "Prepare my portal and give me a verified preview."

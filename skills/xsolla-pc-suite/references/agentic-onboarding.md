@@ -1,11 +1,10 @@
-# Xsolla PC Suite — Agentic Onboarding Workflow
+# Xsolla PC Suite — Agentic Onboarding Specification
 
-Use only current Xsolla CLI commands, connected Xsolla capabilities, and
-official documentation. Never simulate an unsupported action.
+## Requirements
 
-## Required input
+### Input
 
-Collect all missing values in one question:
+Collect missing values in one question:
 
 ```yaml
 merchant_id:
@@ -17,186 +16,146 @@ primary_locale:
 existing_portal_policy: update | create-new
 ```
 
-Optional: approved brand assets, analytics IDs, and additional locales.
+Optional: approved brand assets, analytics IDs, and locales. Never invent or
+reuse partner identifiers, credentials, content, prices, assets, or URLs.
 
-Never generate or reuse partner identifiers, domains, credentials, products,
-prices, assets, or URLs.
+### Acceptance scenarios
 
-## Status model
+1. **Platform:** GIVEN a store URL, WHEN the exact host is
+   `store.steampowered.com`, THEN continue as PC; Mobile, unknown, invalid, or
+   spoofed hosts return `needs_input`.
+2. **Existing portal:** GIVEN the domain exists, WHEN onboarding starts, THEN
+   inspect and resume without duplicates; ambiguous matches require selection.
+3. **Access:** GIVEN a mutation returns `401/403`, WHEN work is partial, THEN
+   preserve the ledger, return `needs_access`, reauthenticate, re-read, resume.
+4. **Login:** GIVEN sign-in succeeds, WHEN binding fails, THEN Login and
+   onboarding remain incomplete until binding is verified.
+5. **Publication:** GIVEN HTTP 200, WHEN an older version is visible, THEN
+   publication remains incomplete.
+6. **Launcher:** GIVEN a Launcher exists, WHEN build, installer, or download
+   evidence is missing, THEN Launcher is incomplete and publish-anyway is
+   refused.
+7. **Handoff:** GIVEN the run ends, WHEN reporting, THEN repeat merchant ID,
+   project ID, domain, Steam URL, and locale with evidence for every Completed
+   item.
 
-- `completed` — effect verified with evidence.
-- `placeholder` — visible, explicitly temporary content.
-- `needs_input` — required value or choice is missing.
-- `needs_access` — authorization is expired or insufficient.
-- `needs_human` — an authorized person must act.
-- `blocked_capability` — the installed CLI cannot perform the action.
-- `failed` — supported action failed or cannot be verified.
+## Design
 
-Maintain a ledger containing step, status, entity IDs, evidence, blocker, and
-next action; resume at the first incomplete step.
+### Flow
 
-## Hard rules
+```mermaid
+flowchart LR
+  Intake --> Preflight
+  Preflight --> Discover
+  Discover --> Draft
+  Draft --> Verify
+  Verify --> HumanReview
+  HumanReview --> Publish
+  Publish --> LiveVerify
+  LiveVerify --> Handoff
+```
 
-1. Inspect before mutation; read back after mutation.
-2. Use only currently available templates, components, fields, and values.
-3. Never choose the first ambiguous site, page, component, or data match—ask.
-4. Never duplicate or overwrite an existing portal without approval.
-5. Stop on access errors and return `needs_access`.
-6. A command exit is not completion; only observed effects count.
-7. Unsupported Login, purchase, Launcher, or publication becomes a human or
-   capability gate, never simulated success.
-8. Never say “All done” while anything is placeholder, blocked, manual, failed,
-   or unverified.
-9. Never list an item under **Completed** while read-back, rendered output, or
-   end-to-end verification is pending; use `needs_input`, `needs_human`,
-   `blocked_capability`, or `failed` instead.
+### Status
 
-## Workflow
+- `completed` — effect verified.
+- `placeholder` — visible and temporary.
+- `needs_input` — value or choice missing.
+- `needs_access` — authorization invalid.
+- `needs_human` — manual action required.
+- `blocked_capability` — CLI cannot perform the action.
+- `failed` — action failed or cannot be verified.
 
-### 1. Preflight
+### Evidence contract
 
-Confirm CLI merchant/project context before mutation. Parse the store URL and
-compare the exact hostname:
+| State | Required evidence | Stop condition |
+|---|---|---|
+| Preflight | CLI context, exact Steam host, domain search | Missing/ambiguous input |
+| Discover | Existing IDs, supported type and skills | Unsupported structure |
+| Draft | Mutation response and read-back | Read-back mismatch |
+| Verify | Structure, preview, readiness result | Pending/failed verification |
+| HumanReview | Approval and disclosed gaps | Approval missing |
+| Publish | Supported command or confirmed human action | Publish unconfirmed |
+| LiveVerify | Public URL, expected version/routes, Login/commerce | Stale/incomplete state |
+| Handoff | Full context, statuses, evidence, next actions | Completed lacks evidence |
 
-- `store.steampowered.com` → PC
-- `apps.apple.com` or `play.google.com` → `needs_input` (outside PC Suite scope)
+### Existing vs desired
 
-Reject invalid, unknown, and spoofed hosts such as
-`store.steampowered.com.example.com`. Do not infer platform from the game name.
+Before mutation:
 
-List existing websites. If the domain exists, read its structure and follow
-`existing_portal_policy`; if multiple matches exist, return `needs_input`.
+| Existing state | Desired state | Action |
+|---|---|---|
+| Verified entity ID and values | Requested change | Create, update, ask, or stop |
 
-### 2. Discover
+Never recreate discovered existing entities.
 
-Inspect current CLI help, official skills, and available structures.
+## Run checklist
 
-- Select only an available portal template or landing type.
-- Use store import only when a supported CLI workflow exists.
-- Record the selected type, reason, capabilities, and limitations.
-- If no suitable type exists, return `blocked_capability` or ask before using
-  the closest option.
+### 1. Context
 
-### 3. Create or resume
+- Confirm merchant/project, domain, locale, and create/update policy.
+- Validate exact Steam host.
+- Resolve ambiguity and disclose unsupported/human gates.
 
-Create a portal only after preflight succeeds. Follow the **shopbuilder** skill
-bootstrap sequence, then read the structure and verify merchant, project,
-domain, type, locale, landing ID, page IDs, and block IDs.
+### 2. Existing state
 
-For an existing portal, continue from its first incomplete element. Re-running
-must not create duplicate pages or blocks.
+- List websites and read the target structure.
+- Capture landing, page, and block IDs.
+- Compare existing and desired state.
+- Resume at the first incomplete item.
 
-### 4. Catalog and brand
+### 3. One change group
 
-Use only observed catalog responses or publisher-approved content.
+Use related skills instead of repeating command recipes:
 
-- Empty, partial, failed, or rate-limited import → stop affected work and
-  report `needs_input` or `blocked_capability`.
-- Never create sample products or prices.
-- Placeholders require publisher approval and visible labeling.
-- Build/inspect the real catalog with **catalog-admin** before wiring Web Shop.
+- `publisher-onboarding` — merchant/project/API key.
+- `shopbuilder` — pages, blocks, theme, localization, preview.
+- `catalog-admin` — catalog and pricing.
+- `login-debug` — Login.
+- `payment-flow` / `webshop-checkout` — checkout.
 
-### 5. Portal structure
+Sections: Home, News, Rewards, Web Shop, Community, optional Launcher.
+Placeholders require approval and visible labels. Launcher requires a real
+Launcher, uploaded build, generated installer, and verified download.
 
-Required sections:
+### 4. Verify
 
-- Home — approved assets and claims only.
-- News — approved source or “News coming soon” placeholder.
-- Rewards — real reward/offer identifiers or “Rewards coming soon” placeholder.
-- Web Shop — real catalog products, prices, groups, and currencies only.
-- Community — approved destination or “Community coming soon” placeholder.
+- Read back changed entities.
+- Refresh preview and confirm rendered output.
+- Update the ledger.
+- Keep unverified items out of **Completed**.
 
-Launcher is PC-only and `completed` only when a real Launcher, uploaded build,
-generated installer, and working download are verified. Discovery alone is not
-configuration.
+### 5. Draft gate
 
-For each page/block: inspect structure, use supported fields, apply targeted
-patches, read back, and refresh preview.
+`draft_ready` requires correct ownership/domain/type/locale, no duplicate
+routes, verified content, disclosed placeholders, explicit Login/commerce
+status, and no readiness failure.
 
-### 6. PC commerce
+### 6. Review and publish
 
-Configure Web Shop from real catalog data. Launcher remains optional and
-evidence-gated; completion requires an uploaded build, generated installer, and
-working download.
+- Present Completed, placeholders, blockers, and failures.
+- Require publication approval.
+- Use a supported command or return `needs_human`.
+- Resume after confirmed human publication.
 
-Use **payment-flow** or **webshop-checkout** for supported sandbox verification.
-Missing configuration/evidence returns `needs_input`, `needs_human`, or
-`blocked_capability`.
+### 7. Live verification
 
-### 7. Login
+`published_verified` requires the expected public version/routes, working Login
+and binding, and verified Web Shop/Launcher outcomes. HTTP 200 with stale
+content is incomplete.
 
-Use **login-debug** for supported Login setup and verification.
-
-Login is `completed` only when:
-
-- Login UI renders.
-- Sign-in completes.
-- Callback and session are valid.
-- Required account binding works.
-
-Otherwise return `needs_human` or `blocked_capability` with the exact action and
-verification method.
-
-### 8. Presentation
-
-Apply only approved theme, SEO, localization, and analytics values through
-supported CLI commands. Verify every saved change and refreshed preview.
-
-### 9. Draft gate
-
-Set `draft_ready` only when:
-
-- Ownership, domain, type, and locale are correct.
-- Required routes exist with no duplicates.
-- Saved and rendered content is verified where possible.
-- Every placeholder is visible and reported.
-- Login and PC commerce are verified or explicitly incomplete.
-- `verify-website` completes without unresolved readiness failures.
-
-Draft-ready does not mean published.
-
-### 10. Publication gate
-
-List placeholders, blockers, manual actions, and failures; ask for explicit
-publication approval.
-
-Publish only through an authorized CLI command available in the installed
-version. Otherwise return `needs_human` and direct the user to Publisher
-Account, then resume after publication.
-
-Set `published_verified` only after confirming:
-
-- Public URL returns successfully.
-- Expected version and routes are live.
-- Login outcome is verified.
-- Purchase or Launcher outcome is verified.
-
-A successful response showing stale content is not completion.
-
-## Error and conflict handling
-
-- `401`, `403`, or expired access → preserve the ledger, return
-  `needs_access`, reauthenticate, and resume.
-- “Publish anyway” → keep failed gates, refuse false completion, and explain
-  the required evidence.
-- Partial prior run → read current state and continue idempotently.
-- Ambiguous match → ask the publisher; do not choose automatically.
-- Unknown CLI command → check `--help` and related skills; never invent syntax.
-
-## Final handoff
+### 8. Handoff
 
 ```markdown
 # Xsolla PC Suite onboarding report
 
-Overall status: draft_ready | needs_input | needs_access | needs_human |
-blocked_capability | published_verified | failed
+Overall status:
 
-## Portal
-- Platform:
+## Confirmed context
+- Merchant ID:
+- Project ID:
 - Domain:
-- Landing ID:
-- Landing type:
-- Catalog source:
+- Steam URL:
+- Primary locale:
 
 ## Sections
 | Section | Page ID | Route | Status | Evidence |
@@ -206,21 +165,21 @@ blocked_capability | published_verified | failed
 - Verified action + evidence
 
 ## Placeholders
-- Temporary content + visible label
+- Temporary content + label
 
 ## Needs input / human action
-- Action + owner + required value + verification method
+- Action + owner + value + verification
 
 ## Blocked capabilities
-- Missing capability + impact + safe next step
+- Capability + impact + next step
 
 ## Failed
-- Action + error + recovery step
+- Action + error + recovery
 
 ## Publication
 - Status:
 - Preview/public URL:
-- Verification evidence:
+- Evidence:
 ```
 
-Honest partial completion is correct. Simulated full completion is failure.
+Honest partial completion is correct. Simulated completion is failure.
