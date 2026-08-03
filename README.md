@@ -120,9 +120,16 @@ variants and three repetitions per case (`36` runs total).
 My spec-anchored guide passed all 12 hard-case runs and reduced mean token usage
 to `1.41×` official docs, meeting the `≤1.5×` target.
 
-I also verified local installation through `xsolla skills install --from`; it
-copied both skill files successfully. Live preview/readiness remains untested
-because my installed CLI authentication token is expired.
+I also verified local skill installation and ran a live smoke check against an
+existing portal:
+
+- Website discovery and structure read: passed.
+- Preview enablement and preview-link generation: passed.
+- Public preview URL: HTTP 403.
+- `verify-website`: HTTP 400 because the CLI request omits required
+  `draftPagesIds`.
+
+These are CLI integration gaps, not onboarding-spec failures.
 
 ## Evals dashboard
 
