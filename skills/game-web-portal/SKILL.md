@@ -1,6 +1,6 @@
 ---
 name: game-web-portal
-description: Set up, create, configure, or resume an Xsolla Game Web Portal for a PC or Steam game with Xsolla CLI; use for PC Game Portal, Web Shop, Launcher, Login, preview, readiness, or publication requests.
+description: Set up, create, configure, or resume an Xsolla Game Web Portal for a PC or Steam game with Xsolla CLI. Use when the request involves a PC Game Portal, Web Shop, Launcher, Login, preview, readiness, or publication.
 ---
 
 # Xsolla Game Web Portal
