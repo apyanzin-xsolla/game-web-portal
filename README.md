@@ -1,4 +1,4 @@
-# Xsolla PC Suite — Agentic Onboarding
+# Xsolla Game Web Portal — Agentic Onboarding
 
 This repository contains the internal PC/Steam onboarding workflow for AI
 agents operating Xsolla CLI. It explains how the agent creates or resumes a
@@ -16,7 +16,7 @@ steps.
 README.md
 PRODUCTION-SETUP.md
 skills/
-└── xsolla-pc-suite/
+└── game-web-portal/
     ├── SKILL.md
     └── references/
         └── agentic-onboarding.md
@@ -24,17 +24,17 @@ skills/
 
 ## Main documents
 
-### [SKILL.md](skills/xsolla-pc-suite/SKILL.md)
+### [SKILL.md](skills/game-web-portal/SKILL.md)
 
 The agent entry point:
 
-- Trigger phrases for PC Suite and PC Game Portal requests.
+- Trigger phrases for Game Web Portal and PC Game Portal requests.
 - PC-only scope.
 - CLI installation and startup commands.
 - Stable constitution applied to every run.
 - Related Xsolla CLI skills and preview commands.
 
-### [Agentic onboarding workflow](skills/xsolla-pc-suite/references/agentic-onboarding.md)
+### [Agentic onboarding workflow](skills/game-web-portal/references/agentic-onboarding.md)
 
 The complete operating instruction:
 
@@ -80,7 +80,7 @@ The specification defines expected behavior for:
 When bundled with Xsolla CLI:
 
 ```bash
-xsolla skills install xsolla-pc-suite
+xsolla skills install game-web-portal
 ```
 
 Then ask the installed agent:
@@ -109,7 +109,7 @@ end-to-end verification is pending.
 I evaluated the workflow on four hard PC onboarding scenarios with three
 variants and three repetitions per case (`36` runs total).
 
-| Metric | PC Suite skill | Official docs | No context |
+| Metric | Game Web Portal skill | Official docs | No context |
 |---|---:|---:|---:|
 | Success rate | **100% (12/12)** | 100% (12/12) | 50% (6/12) |
 | First-try success | 100% | 100% | 50% |
@@ -135,4 +135,4 @@ These are CLI integration gaps, not onboarding-spec failures.
 
 I generated this dashboard from the same 36-run assessment:
 
-![My Xsolla PC Suite Evals dashboard](xsolla-pc-suite-evals-dashboard.png)
+![My Xsolla Game Web Portal Evals dashboard](game-web-portal-evals-dashboard.png)

@@ -1,9 +1,9 @@
 ---
-name: xsolla-pc-suite
-description: Set up, create, configure, or resume an Xsolla PC Suite portal for a PC or Steam game with Xsolla CLI; use for PC Game Portal, Web Shop, Launcher, Login, preview, readiness, or publication requests.
+name: game-web-portal
+description: Set up, create, configure, or resume an Xsolla Game Web Portal for a PC or Steam game with Xsolla CLI; use for PC Game Portal, Web Shop, Launcher, Login, preview, readiness, or publication requests.
 ---
 
-# Xsolla PC Suite
+# Xsolla Game Web Portal
 
 Use Xsolla CLI to create or resume a verified PC Game Portal and return an
 evidence-backed handoff.
@@ -20,7 +20,7 @@ evidence-backed handoff.
 Install the bundled skill:
 
 ```bash
-xsolla skills install xsolla-pc-suite
+xsolla skills install game-web-portal
 ```
 
 The user asks:
@@ -85,5 +85,5 @@ publication command.
 ## Examples
 
 - "Set up my PC Game Portal for this Steam title."
-- "Resume my PC Suite portal without duplicating pages."
+- "Resume my Game Web Portal without duplicating pages."
 - "Prepare my portal and give me a verified preview."
