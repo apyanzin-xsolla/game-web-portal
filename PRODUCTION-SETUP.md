@@ -1,10 +1,10 @@
-# Xsolla PC Suite — Production Setup
+# Xsolla Game Web Portal — Production Setup
 
 ## Purpose
 
-Xsolla PC Suite Agentic Onboarding helps an AI agent create or resume a PC Game
-Portal through Xsolla CLI while verifying supported actions and reporting
-manual, blocked, or failed work explicitly.
+Xsolla Game Web Portal Agentic Onboarding helps an AI agent create or resume a
+PC Game Portal through Xsolla CLI while verifying supported actions and
+reporting manual, blocked, or failed work explicitly.
 
 ## Specification model
 
@@ -36,7 +36,7 @@ Excluded:
 
 ## Runtime prerequisites
 
-- Xsolla CLI containing the bundled `xsolla-pc-suite` skill.
+- Xsolla CLI containing the bundled `game-web-portal` skill.
 - Authenticated publisher context.
 - Confirmed merchant ID and project ID.
 - API key for catalog/payment operations where required.

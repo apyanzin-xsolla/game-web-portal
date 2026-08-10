@@ -1,4 +1,4 @@
-# Xsolla PC Suite — Agentic Onboarding Specification
+# Xsolla Game Web Portal — Agentic Onboarding Specification
 
 ## Requirements
 
@@ -146,7 +146,7 @@ content is incomplete.
 ### 8. Handoff
 
 ```markdown
-# Xsolla PC Suite onboarding report
+# Xsolla Game Web Portal onboarding report
 
 Overall status:
 
