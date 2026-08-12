@@ -1,49 +1,76 @@
 # Xsolla Game Web Portal — Agentic Onboarding
 
-This repository contains the internal PC/Steam onboarding workflow for AI
-agents operating Xsolla CLI. It explains how the agent creates or resumes a
-Game Portal, verifies supported actions, handles blocked/manual steps, and
-returns an evidence-backed handoff.
+## What Agentic Onboarding is
 
-I use the lightweight **spec-anchored** approach from [Understanding
+Onboarding done by an AI agent instead of a person clicking through a dashboard.
+You give the agent a Steam store URL and your identifiers. It drives Xsolla CLI to
+create or resume your Game Web Portal, checks the result of every change it makes,
+and hands back a report you can audit line by line.
+
+What makes it trustworthy is a single rule: **the agent reports only what it
+verified.** It never invents an ID, a command, a price, or a completion. Anything it
+could not finish is named explicitly, with the reason and whose job it is to fix.
+Honest partial completion is the expected outcome; a clean-looking report that
+wasn't verified is a failure.
+
+The workflow is **spec-anchored**, following [Understanding
 Spec-Driven-Development](https://martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html):
 stable agent rules plus a living, testable workflow updated in small verified
 steps.
 
+## How to use it
+
+Install the skill from inside either folder, authenticate, then ask:
+
+```bash
+xsolla skills install --from . game-web-portal
+xsolla auth login
+```
+
+```text
+Use Xsolla CLI to set up my PC Game Portal.
+```
+
+The agent asks for `merchant_id`, `project_id`, `domain`, `game_name`, `store_url`,
+`primary_locale`, and whether an existing portal should be updated or replaced — all
+in one question — then works through this flow:
+
+```text
+Intake → Preflight → Discover → Draft → Verify → Human review →
+Publish → Live verification → Handoff
+```
+
+It stops and asks whenever access needs renewing, an existing entity is ambiguous, a
+change would be destructive, the CLI lacks a needed capability, or publication must
+happen in Publisher Account. Progress is preserved, so a resumed run continues rather
+than rebuilding.
+
 ## Repository structure
 
-The skill is packaged twice, because the two Xsolla distribution targets mandate
-different formats. Each folder is self-contained and ready to submit as-is.
+The same workflow is packaged twice, once for each place the skill can be installed
+from. Both folders are self-contained, and both drive the identical onboarding
+specification — pick whichever matches how you get your Xsolla skills.
+
+- **[CLI](CLI/README.md)** — for the Xsolla CLI's built-in skill set.
+- **[AI-Kit](AI-Kit/README.md)** — for the Xsolla AI-Kit skill collection.
 
 ```text
 README.md
 PRODUCTION-SETUP.md
 game-web-portal-evals-dashboard.png
-CLI/                                  → xsolla/xsolla-cli (compiled into the binary)
+CLI/
 ├── README.md
 └── skills/game-web-portal/
     ├── SKILL.md
     ├── VERSION
     ├── CHANGELOG.md
     └── references/agentic-onboarding.md
-AI-Kit/                               → xsolla/xsolla-ai-kit (remote skill source)
+AI-Kit/
 ├── README.md
 └── skills/game-web-portal/
     ├── SKILL.md
     └── references/agentic-onboarding.md
 ```
-
-| | [CLI](CLI/README.md) | [AI-Kit](AI-Kit/README.md) |
-|---|---|---|
-| Target | `xsolla/xsolla-cli` | `xsolla/xsolla-ai-kit` |
-| Delivery | embedded via `//go:embed skills` | fetched as a remote source |
-| Frontmatter | single-line `description` | `description: >-` block + `metadata` |
-| Sections | freeform, matching `shopbuilder` | four mandated headings |
-| Extras | `VERSION`, `CHANGELOG.md` | none |
-| Length | 89 lines | 126 lines |
-
-Both share the same `references/agentic-onboarding.md` specification, so the workflow
-itself is identical — only the packaging differs.
 
 ## Main documents
 
@@ -57,8 +84,8 @@ The agent entry point:
 - Stable constitution applied to every run.
 - Related Xsolla CLI skills and preview commands.
 
-The [AI-Kit variant](AI-Kit/skills/game-web-portal/SKILL.md) carries the same workflow
-under that repository's mandated headings.
+The [AI-Kit variant](AI-Kit/skills/game-web-portal/SKILL.md) describes the same
+workflow.
 
 ### [Agentic onboarding workflow](CLI/skills/game-web-portal/references/agentic-onboarding.md)
 
@@ -100,37 +127,6 @@ The specification defines expected behavior for:
 5. HTTP 200 serving stale portal content.
 6. Missing Launcher build/installer/download with “publish anyway.”
 7. Final handoff repeating every supplied identifier and locale.
-
-## Install and use
-
-Install either version straight from this repository:
-
-```bash
-# CLI-shaped version
-xsolla skills install --from github:apyanzin-xsolla/game-web-portal#CLI/skills \
-  --allow-untrusted game-web-portal
-
-# AI-Kit-shaped version
-xsolla skills install --from github:apyanzin-xsolla/game-web-portal#AI-Kit/skills \
-  --allow-untrusted game-web-portal
-```
-
-`--allow-untrusted` is required because the CLI trusts `github.com/xsolla/*` and
-configured named sources only.
-
-Once bundled with Xsolla CLI:
-
-```bash
-xsolla skills install game-web-portal
-```
-
-Then ask the installed agent:
-
-```text
-Use Xsolla CLI to set up my PC Game Portal.
-```
-
-The agent loads the skill and full workflow reference before issuing commands.
 
 ## Status model
 
