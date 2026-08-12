@@ -12,19 +12,42 @@ steps.
 
 ## Repository structure
 
+The skill is packaged twice, because the two Xsolla distribution targets mandate
+different formats. Each folder is self-contained and ready to submit as-is.
+
 ```text
 README.md
 PRODUCTION-SETUP.md
-skills/
-└── game-web-portal/
+game-web-portal-evals-dashboard.png
+CLI/                                  → xsolla/xsolla-cli (compiled into the binary)
+├── README.md
+└── skills/game-web-portal/
     ├── SKILL.md
-    └── references/
-        └── agentic-onboarding.md
+    ├── VERSION
+    ├── CHANGELOG.md
+    └── references/agentic-onboarding.md
+AI-Kit/                               → xsolla/xsolla-ai-kit (remote skill source)
+├── README.md
+└── skills/game-web-portal/
+    ├── SKILL.md
+    └── references/agentic-onboarding.md
 ```
+
+| | [CLI](CLI/README.md) | [AI-Kit](AI-Kit/README.md) |
+|---|---|---|
+| Target | `xsolla/xsolla-cli` | `xsolla/xsolla-ai-kit` |
+| Delivery | embedded via `//go:embed skills` | fetched as a remote source |
+| Frontmatter | single-line `description` | `description: >-` block + `metadata` |
+| Sections | freeform, matching `shopbuilder` | four mandated headings |
+| Extras | `VERSION`, `CHANGELOG.md` | none |
+| Length | 89 lines | 126 lines |
+
+Both share the same `references/agentic-onboarding.md` specification, so the workflow
+itself is identical — only the packaging differs.
 
 ## Main documents
 
-### [SKILL.md](skills/game-web-portal/SKILL.md)
+### [SKILL.md](CLI/skills/game-web-portal/SKILL.md)
 
 The agent entry point:
 
@@ -34,7 +57,10 @@ The agent entry point:
 - Stable constitution applied to every run.
 - Related Xsolla CLI skills and preview commands.
 
-### [Agentic onboarding workflow](skills/game-web-portal/references/agentic-onboarding.md)
+The [AI-Kit variant](AI-Kit/skills/game-web-portal/SKILL.md) carries the same workflow
+under that repository's mandated headings.
+
+### [Agentic onboarding workflow](CLI/skills/game-web-portal/references/agentic-onboarding.md)
 
 The complete operating instruction:
 
@@ -77,7 +103,22 @@ The specification defines expected behavior for:
 
 ## Install and use
 
-When bundled with Xsolla CLI:
+Install either version straight from this repository:
+
+```bash
+# CLI-shaped version
+xsolla skills install --from github:apyanzin-xsolla/game-web-portal#CLI/skills \
+  --allow-untrusted game-web-portal
+
+# AI-Kit-shaped version
+xsolla skills install --from github:apyanzin-xsolla/game-web-portal#AI-Kit/skills \
+  --allow-untrusted game-web-portal
+```
+
+`--allow-untrusted` is required because the CLI trusts `github.com/xsolla/*` and
+configured named sources only.
+
+Once bundled with Xsolla CLI:
 
 ```bash
 xsolla skills install game-web-portal
