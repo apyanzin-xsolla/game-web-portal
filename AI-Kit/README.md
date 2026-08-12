@@ -1,76 +1,129 @@
-# AI-Kit — marketplace-source version
+# Game Web Portal — Agentic Onboarding
 
-The version of the `game-web-portal` skill shaped for
-[`xsolla/xsolla-ai-kit`](https://github.com/xsolla/xsolla-ai-kit), the public skills
-repository the Xsolla CLI reaches as a remote source rather than an embedded bundle.
+The version of this skill packaged for the Xsolla AI-Kit skill collection.
+
+## What Agentic Onboarding is
+
+Onboarding done by an AI agent instead of a person clicking through a dashboard.
+You give the agent a Steam store URL and your identifiers. It drives Xsolla CLI to
+create or resume your Game Web Portal, checks the result of every change it makes,
+and hands back a report you can audit line by line.
+
+What makes it trustworthy is a single rule: **the agent reports only what it
+verified.** It never invents an ID, a command, a price, or a completion. Anything it
+could not finish is named explicitly, with the reason and whose job it is to fix.
+Honest partial completion is the expected outcome; a clean-looking report that
+wasn't verified is a failure.
+
+## What it builds
+
+A Game Web Portal for a PC or Steam title:
+
+- Pages: Home, News, Rewards, Web Shop, Community, and an optional Launcher.
+- Wiring: catalog, Login, theme, localization, preview, and publication readiness.
+
+PC and Steam only. App Store and Google Play onboarding is out of scope and returns
+`needs_input`.
+
+## How to use it
+
+**1. Install the skill.** From inside this folder:
+
+```bash
+xsolla skills install --from . game-web-portal
+```
+
+Add `--global` to make it available in every project instead of just this one.
+
+**2. Authenticate.**
+
+```bash
+xsolla auth login
+xsolla config list
+```
+
+**3. Ask the agent.**
 
 ```text
-AI-Kit/
-└── skills/
-    └── game-web-portal/
-        ├── SKILL.md                       126 lines
-        └── references/
-            └── agentic-onboarding.md      185 lines
+Use Xsolla CLI to set up my PC Game Portal.
 ```
 
-## Conventions this version follows
+**4. Answer its one question.** It asks for everything at once rather than
+drip-feeding prompts:
 
-From `CONTRIBUTING-skills.md` in `xsolla-ai-kit`:
+```yaml
+merchant_id:
+project_id:
+domain:
+game_name:
+store_url:
+primary_locale:
+existing_portal_policy: update | create-new
+```
 
-| Rule | How this version meets it |
+## What the agent does
+
+```text
+Intake → Preflight → Discover → Draft → Verify → Human review →
+Publish → Live verification → Handoff
+```
+
+- **Intake** — collects the values above; asks rather than guessing.
+- **Preflight** — confirms the store URL host is exactly `store.steampowered.com`,
+  and that your merchant, project, domain, and locale check out.
+- **Discover** — reads what already exists at the domain and captures its IDs, so a
+  second run resumes instead of building a duplicate portal.
+- **Draft** — makes one change group at a time, reading each change back afterward.
+  Catalog, Login, and checkout work is delegated to the sibling skills in this
+  collection rather than duplicated here.
+- **Verify** — refreshes the preview and confirms the rendered output.
+- **Human review** — shows you what's done, what's a placeholder, and what's
+  blocked, then waits for your approval.
+- **Publish** — only after you approve. If the CLI has no supported publish command,
+  it stops and tells you to finish in Publisher Account.
+- **Live verification** — confirms the public URL serves the expected version and
+  routes, Login binding works, and Web Shop and Launcher behave.
+- **Handoff** — the final report.
+
+## What you get back
+
+A handoff report containing your confirmed identifiers, a per-section status table
+with evidence, the actions completed, every placeholder left in place, anything
+needing your input, blocked capabilities, failures with recovery steps, and the
+preview or public URL.
+
+Each item carries one status:
+
+| Status | Meaning |
 |---|---|
-| One skill per directory — `skills/<name>/SKILL.md` | yes |
-| Under 200 lines, overflow into `references/*.md` | 126 |
-| YAML frontmatter with `description: >-` block | yes |
-| `metadata:` with `owner` and `domain` | `owner: apyanzin-xsolla`, `domain: orchestrator` |
-| Pushy description covering every trigger scenario | full trigger list plus the out-of-scope statement |
-| Required section `## When to use` | trigger keywords and entry conditions |
-| Required section `## Prerequisites` | auth, merchant/project, API key, access, required input block |
-| Required section `## Steps` | the nine-state run flow with delegation targets |
-| Required section `## Common pitfalls` | six failure modes with fixes |
-| No raw `curl` | no HTTP; the flow delegates to CLI-backed sibling skills |
+| `completed` | effect verified |
+| `placeholder` | visible and temporary |
+| `needs_input` | a value or choice is missing |
+| `needs_access` | authorization invalid or expired |
+| `needs_human` | manual action required |
+| `blocked_capability` | the CLI cannot perform the action |
+| `failed` | the action failed or could not be verified |
 
-`domain: orchestrator` follows `shop-setup`, which the skills table lists as
-"Orchestrator — full zero-to-shop flow". This skill is the PC/Steam portal analogue.
+Nothing reaches `completed` while read-back, rendered output, or end-to-end
+verification is still pending.
 
-Delegation targets are named in ai-kit's own vocabulary — `merchant-setup`,
-`shop-setup`, `catalog-design`, `login-setup`, `headless-checkout-integration` — not the
-CLI bundle's names.
+## Where you have to step in
 
-## Try it from this folder
+The agent stops and asks when access needs renewing, an existing entity is
+ambiguous, a change would be destructive, the CLI lacks a needed capability, or
+publication must happen in Publisher Account. It preserves its progress and resumes
+once you've cleared the gate.
 
-```bash
-xsolla skills install --from github:apyanzin-xsolla/game-web-portal#AI-Kit/skills \
-  --allow-untrusted game-web-portal
+## Files
+
+```text
+skills/game-web-portal/
+├── SKILL.md                      the agent's entry point
+└── references/
+    └── agentic-onboarding.md     the full specification
 ```
 
-Once merged into `xsolla-ai-kit`:
-
-```bash
-xsolla skills install --from github:xsolla/xsolla-ai-kit#skills game-web-portal
-```
-
-The shorter `--source ai-kit` form does not work on CLI 1.9.3 — the built-in source
-points at `github.com/xsolla/ai-kit` on `master`, while the repository is
-`xsolla/xsolla-ai-kit` on `main`, so the fetch returns HTTP 404. Register the correct
-spec locally to work around it:
-
-```bash
-xsolla skills sources add ai-kit github:xsolla/xsolla-ai-kit#skills --force
-```
-
-## Known caveat: `>-` and `xsolla skills list`
-
-The CLI's frontmatter reader does not parse YAML block scalars, so this skill's
-description displays as a bare `>-` in `xsolla skills list`. That affects every skill
-in `xsolla-ai-kit` today, not just this one — the format is mandated by
-`CONTRIBUTING-skills.md`, so this version keeps it for consistency. Agents read
-`SKILL.md` directly and are unaffected; only the CLI's listing output is degraded. The
-`CLI/` version uses a single-line description and lists correctly.
-
-## Upstream status
-
-Not yet opened, but unblocked: the repository is public with forking enabled, so a
-personal fork plus a cross-fork PR to `main` works without any access grant. Account
-access to the upstream is read-only, so the branch has to live in a fork — note the
-repo has no forks yet and all PRs to date came from in-repo branches.
+`SKILL.md` is what the agent reads first. It loads
+[the specification](skills/game-web-portal/references/agentic-onboarding.md) —
+acceptance scenarios, the evidence required at each state, and the handoff
+template — before issuing any commands.
