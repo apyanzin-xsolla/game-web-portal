@@ -1,4 +1,4 @@
-# Xsolla Game Web Portal — Site Builder API reference
+# Xsolla Game Web Portal — Shop Builder API reference
 
 The portal itself (websites, pages, blocks, theme, copy, domain, preview) is
 Site Builder. This file is the API surface for Step 4 (Draft) and Step 5
