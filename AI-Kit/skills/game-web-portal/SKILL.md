@@ -44,7 +44,7 @@ listed under Steps.
 - Confirmed merchant ID and project ID — see `merchant-setup`.
 - API key for catalog and payment operations where required.
 - Shop Builder access for the target project. Portal operations authenticate with a
-  publisher session cookie, not the project API key — see
+  Publisher Account admin token, not the project API key — see
   [references/portal-api.md](references/portal-api.md). Treat `401/403` as
   `needs_access`, never as a capability block.
 - Approved content and brand assets. Never invent or reuse partner identifiers,
@@ -76,35 +76,40 @@ Publish → Live verification → Handoff
 
 1. **Intake** — collect the required input above. Resolve every ambiguity by asking;
    never choose an ambiguous match.
-2. **Preflight** — validate the exact Steam host, confirm merchant/project, domain,
-   and locale, and disclose any unsupported or human-gated step up front.
+2. **Preflight** — validate the exact Steam host, read the title through
+   `GET .../landing/{domain}/parsing` with `type: steam`, confirm merchant/project,
+   domain, and locale, and disclose any unsupported or human-gated step up front.
+   Never substitute invented game metadata when parsing fails.
 3. **Discover** — list existing portals and read the target structure
-   (`GET .../landings`, `GET .../landing/{slug}`, `GET .../landing/{slug}/structure`).
+   (`GET .../landings`, `GET .../landing/{domain}`, `GET .../landing/{domain}/structure`).
    Capture the landing `_id`, page IDs, and block IDs before any mutation — block and
-   theme calls are keyed by landing `_id`, not the slug. Never recreate a discovered
+   theme calls are keyed by landing `_id`, not the domain. Never recreate a discovered
    existing entity; resume at the first incomplete item.
-4. **Draft** — apply one change group at a time across Home, News, Rewards, Web Shop,
-   Community, and optional Launcher. Portal structure itself — portal creation and
-   landing type, pages, blocks, theme, assets, copy and localization, domain,
-   analytics, preview — runs against the Site Builder API in
+4. **Draft** — bootstrap first: generate the portal from the store URL
+   (`POST .../landing/{domain}/structure` with `type: steam`, or
+   `POST .../landing/{domain}/portal` on a landing with no type yet — it returns
+   `409` once initialized, which means resume, not recreate). Then apply one change
+   group at a time across Home, News, Rewards, Web Shop, Community, and optional
+   Launcher. Portal structure itself — pages, blocks, theme, assets, copy and
+   localization, domain, analytics, preview — runs against the Site Builder API in
    [references/portal-api.md](references/portal-api.md). Delegate the surrounding
    products rather than duplicating their recipes: `merchant-setup` for
    merchant/project/API key, `catalog-design` for catalog and pricing, `login-setup`
    for Login, `headless-checkout-integration` for checkout. Placeholders require
    approval and a visible label.
 5. **Verify** — read back every changed entity (`structure`, page, and block reads),
-   refresh the preview, run the readiness check (`GET .../landing/{slug}/check`),
+   refresh the preview, run the readiness check (`GET .../landing/{domain}/check`),
    confirm rendered output, and update the ledger. A mutation response is not
    evidence. Keep unverified items out of **Completed**.
 6. **Human review** — present completed items, placeholders, blockers, and failures.
    `draft_ready` requires correct ownership, domain, type, and locale, no duplicate
    routes, verified content, disclosed placeholders, explicit Login and commerce
    status, and no readiness failure.
-7. **Publish** — require explicit approval. The Site Builder API exposes no publish
-   endpoint, so publication is `needs_human`: hand the partner the exact manual step
-   and resume after they confirm. Never publish automatically, and never infer
-   publication from a `200` on any other call. Rollback is
-   `GET .../landing/{slug}/versions` plus `PUT .../landing/{slug}/version/{version-id}`.
+7. **Publish** — require explicit approval, then `POST .../landing/{domain}/publication`.
+   Never publish automatically, and never treat its `200` as proof the live site is
+   correct — it is a receipt, and `last_published` still has to be confirmed against
+   the public URL in Step 8. Rollback is `GET .../landing/{domain}/versions` plus
+   `PUT .../landing/{domain}/versions/{versionId}`.
 8. **Live verification** — `published_verified` requires the expected public version
    and routes, working Login and account binding, and verified Web Shop and Launcher
    outcomes.
@@ -120,7 +125,7 @@ Two references, both loaded before issuing changes:
   specification: `GIVEN / WHEN / THEN` acceptance scenarios, the per-state evidence
   contract, and the handoff report template.
 - [references/portal-api.md](references/portal-api.md) — the Site Builder API for
-  Steps 3–7: endpoints per stage, the slug vs landing `_id` split, the localization
+  Steps 2–8: endpoints per stage, the domain vs landing `_id` split, the localization
   payload shape, known API issues, and the response → status mapping.
 
 ## Common pitfalls

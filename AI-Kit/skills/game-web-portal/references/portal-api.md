@@ -1,94 +1,164 @@
 # Xsolla Game Web Portal — Shop Builder API reference
 
-The portal itself (websites, pages, blocks, theme, copy, domain, preview) is
-Site Builder. This file is the API surface for Step 4 (Draft) and Step 5
-(Verify). Catalog, Login, and checkout stay delegated — see `SKILL.md`.
+The portal itself (sites, pages, blocks, theme, copy, domain, preview, publication)
+is Site Builder. This file is the API surface for Steps 3–8. Catalog, Login, and
+checkout stay delegated — see `SKILL.md`.
 
 ## Context
 
-- **Base URL:** `https://sitebuilder.xsolla.com`
-- **Auth:** publisher session cookie (`pa-v4-token` from `publisher.xsolla.com`),
-  **not** `XSOLLA_PROJECT_API_KEY`. A missing, stale, or unauthorized session
-  returns `403 not_enough_permissions` → `needs_access`.
-- **Path shorthand below:** `{M}` = `/api/merchant/{merchant-id}/project/{project-id}`
+- **Base URL:** `https://sitebuilder.xsolla.com/api`
+- **Auth:** `Authorization` header carrying the Publisher Account admin token.
+  A missing, stale, or unauthorized token returns `401/403` → `needs_access`.
+  (The Xsolla CLI drives the same service with a publisher session cookie
+  `pa-v4-token` instead; either way, this is *not* `XSOLLA_PROJECT_API_KEY`.)
+- **Path shorthand below:** `{M}` = `/merchant/{merchantId}/project/{projectId}`
 
-### Two different IDs — the top cause of hard failures
+### Two different keys — the top cause of hard failures
 
 | Key | What it is | Used by |
 |---|---|---|
-| `slug` | the domain label, e.g. `voidwall` → `voidwall.xsolla.site` | `landing/{slug}/…`, localization, preview, versions |
-| `landingId` | the landing's Mongo `_id` (top-level `_id` in `structure`) | `ui/{landing-id}/…` (blocks, batch), `assets/{landing-id}/…` |
+| `domain` | the site's domain label, e.g. `voidwall` → `voidwall.xsolla.site` | `landing/{domain}/…`, localization, preview, publication, versions |
+| `landingId` | the landing's Mongo `_id` (top-level `_id` in `structure`) | `ui/{landing}/…` (blocks, store, settings), `assets/{collectionId}/…` |
 
-Passing a slug into a `ui/*` path makes the backend parse it as an ObjectId and
+Sending a domain into a `ui/*` path makes the backend parse it as an ObjectId and
 return **500**. Resolve `landingId` once during Discover and reuse it.
 
 ## Discover
 
 | Intent | Call |
 |---|---|
-| List portals in the project | `GET {M}/landings` |
-| Read one portal's metadata (incl. `_id` = `landingId`) | `GET {M}/landing/{slug}` |
-| Read full structure — pages, blocks, IDs, ordering | `GET {M}/landing/{slug}/structure` |
-| List pages | `GET {M}/landing/{slug}/pages` |
-| Read one page | `GET {M}/landing/{slug}/pages/{page-id}` |
-| Read one block, localizations inlined | `GET {M}/landing/{slug}/blocks/{block-id}` |
-| Licensing agreements (publication gate) | `GET /merchant/current/merchants/{merchant-id}/agreements` |
+| List sites in the project | `GET {M}/landings` |
+| Read one site (incl. `_id` = `landingId`) | `GET {M}/landing/{domain}` |
+| Read full structure — pages, blocks, IDs, ordering | `GET {M}/landing/{domain}/structure` |
+| List pages | `GET {M}/landing/{domain}/pages` |
+| Read one page | `GET {M}/landing/{domain}/pages/{pageId}` |
+| Partner's projects | `GET /merchant/{merchantId}/projects/list` |
+| Licensing agreements (publication gate) | `GET /merchant/merchants/{merchantId}/agreements` |
 
-Discover is mandatory before any mutation: it supplies `landingId`, page IDs,
-block IDs, and the current ordering, and it is how resume avoids duplicate pages.
+Discover is mandatory before any mutation: it supplies `landingId`, page IDs, block
+IDs, and current ordering, and it is how resume avoids building a duplicate portal.
 
-## Draft — create the portal
-
-A fresh portal is **empty and unconfigured** until all three calls run in order.
-
-| Step | Call | Body |
-|---|---|---|
-| 1. Create | `POST {M}/landing/{slug}` | `{ "name": "<Name>", "type": "topup", "colorScheme"?: "<name>", "theme"?: {…} }` |
-| 2. Finalize type | `PUT {M}/landing/{slug}/admin/change-landing-type` | `{ "type": "topup" \| "store" \| "sellingpage" }` |
-| 3. Add a page | `POST {M}/landing/{slug}/pages` | `{ "name": "<1–80 chars>", "path": "/main" }` |
-
-- Create returns a landing with `pages: []` and `type: null`. Without step 2 the
-  editor gates on a domain prompt and the preview 404s.
-- `path` accepts lowercase `a–z`, `0–9`, hyphen and slash only, max 80 chars.
-- A new page is scaffolded with default template blocks — read them back with
-  `structure` and trim rather than adding on top.
-- Other portal-level calls: `POST {M}/landing/{slug}/duplicate`,
-  `DELETE {M}/landing/{slug}` (destructive — never without explicit approval).
-
-## Draft — sections and blocks
-
-All keyed by `landingId`, not slug.
+## Preflight — read the Steam title
 
 | Intent | Call | Body |
 |---|---|---|
-| Add block | `POST {M}/ui/{landing-id}/page/{page-id}/block` | `{ "block": "<module>", "index"?: <0-based> }` |
-| Move block | `PUT {M}/ui/{landing-id}/page/{page-id}/block` | source/destination indices, 0-based |
-| Delete block | `DELETE {M}/ui/{landing-id}/page/{page-id}/block` | block `_id` |
-| Duplicate block | `POST {M}/ui/{landing-id}/page/{page-id}/block/duplicate` | `{ "blockId": "<_id>", "index"?: <n> }` |
-| Patch block / page / site | `PATCH {M}/ui/{landing-id}/batch` | see below |
+| Pull game info from the store URL | `GET {M}/landing/{domain}/parsing` | `{ "type": "steam" \| "gplay" \| "topup" \| "sellingpage", "target": "https://store.steampowered.com/app/…" }` |
 
-`block` is a **module template name**, not a block ID. Read the modules actually
-available to the project from `structure` before adding — do not guess names for
-News, Rewards, or Community sections. Known modules include `lead` (hero),
-`newStore` (catalog grid), `federated`, `faq`, and the default page scaffold
-(header, lead, description, packs, bento, gallery, requirements, faq, footer).
+Use this to confirm the title before drafting; PC/Steam only per the skill's entry
+conditions. Never substitute invented game metadata when parsing fails — return
+`needs_input`.
 
-The batch endpoint is the same call the editor uses. Body is a map of
-`requestId → change`:
+## Draft — bootstrap the portal
+
+Prefer the generated bootstrap over hand-assembling pages and blocks.
+
+| Step | Call | Body |
+|---|---|---|
+| Create the site | `POST {M}/landing/{domain}` | `{ "name": "<Name>", "type": "topup", "colorScheme"?, "theme"? }` |
+| Generate structure from the store URL | `POST {M}/landing/{domain}/structure` | `{ "type": "steam", "target": "<Steam URL>" }` |
+| Or initialize a portal template | `POST {M}/landing/{domain}/portal` | single-page vs hub (multi-page) layout; theme derived from the game icon |
+| Add a block-set template | `POST {M}/landing/{domain}/template` | `{ "type": "steam", "template": "home" \| "store" \| "news" }` |
+| Finalize the landing type | `PUT {M}/landing/{domain}/admin/change-landing-type` | `{ "type": "topup" \| "store" \| "sellingpage" }` |
+
+- `POST .../portal` only works on a landing with **no type assigned** — it returns
+  **409** once a portal structure exists. On resume, read the structure instead of
+  re-initializing.
+- `structure` accepts `sellingpage`, `gplay`, `steam`, `store`, `topup`, `rfppage`,
+  `free2play`. Omit `target` for `sellingpage`.
+- Without a finalized landing type the editor gates on a domain prompt and the
+  preview 404s.
+- Other site-level calls: `POST {M}/landing/{domain}/duplicate`,
+  `PATCH {M}/landing/{domain}` (domain rename), `DELETE {M}/landing/{domain}`
+  (destructive — never without explicit approval),
+  `PUT {M}/landing/{domain}/admin/change-merchant` / `change-project`.
+
+## Draft — pages, navigation, features
+
+| Intent | Call | Body |
+|---|---|---|
+| Add page | `POST {M}/landing/{domain}/pages` | `{ "name": "<1–80 chars>", "path": "/main" }` |
+| Update page | `PATCH {M}/landing/{domain}/pages/{pageId}` | page fields |
+| Duplicate page | `POST {M}/landing/{domain}/pages/{pageId}` | — |
+| Delete page | `DELETE {M}/landing/{domain}/pages/{pageId}` | — |
+| Link a page under a parent (nav) | `POST {M}/landing/{domain}/linking` | `{ "parent": "<docId>", "path": "link-example" }` |
+| Remove a link | `DELETE {M}/landing/{domain}/linking` | — |
+| Toggle site features | `PATCH {M}/landing/{domain}/features` | feature list |
+| Page settings | `PUT {M}/ui/{landing}/page/{pageId}/savepagesettings` | — |
+| Site settings | `PUT {M}/ui/{landing}/savelandingsettings` | — |
+
+`path` accepts lowercase `a–z`, `0–9`, hyphen and slash only, max 80 chars.
+
+## Draft — blocks
+
+Keyed by `landingId`.
+
+| Intent | Call | Body |
+|---|---|---|
+| Add block | `POST {M}/ui/{landing}/page/{pageId}/block` | `{ "block": "<module>", "index"?: <0-based> }` |
+| Move block | `PUT {M}/ui/{landing}/page/{pageId}/block` | source/destination indices, 0-based |
+| Delete block | `DELETE {M}/ui/{landing}/page/{pageId}/block` | block `_id` |
+| Duplicate block | `POST {M}/ui/{landing}/page/{pageId}/block/duplicate` | `{ "blockId": "<_id>", "index"?: <n> }` |
+| Update a block | `PUT {M}/ui/{landing}/saveblock` | block payload |
+| List available components | `GET {M}/ui/{landing}/components` | — |
+| Batch patch blocks / pages / site | `PATCH {M}/ui/{landing}/batch` | see below |
+
+`block` is a **module template name**, not a block ID. Read what the project
+actually offers from `GET {M}/ui/{landing}/components` or from `structure` before
+adding — do not guess module names for News, Rewards, or Community. Known modules
+include `lead` (hero), `newStore` (catalog grid), `federated`, `faq`, and the
+default page scaffold (header, lead, description, packs, bento, gallery,
+requirements, faq, footer).
+
+The batch endpoint is the call the editor itself makes (verified live; it is not in
+the published catalog). Body is a map of `requestId → change`:
 
 ```json
 {"r1": {"type": "block", "id": "<blockId>",
         "patches": [{"op": "replace", "path": ["hidden"], "value": true}]}}
 ```
 
-- `type` is `block` | `page` | `site`; `id` is the block `_id`, page `_id`, or
-  the `landingId` (site-level).
+- `type` is `block` | `page` | `site`; `id` is the block `_id`, page `_id`, or the
+  `landingId` (site-level).
 - `path` is an Immer segment array. `op` is `add` | `remove` | `replace`.
 - Protected, un-patchable: `_id`, `module`, `blockVersion`.
+- `POST {M}/ui/{landing}/page/{pageId}/block/changeVersion` is an internal UI
+  endpoint — do not call it.
+
+## Draft — Web Shop wiring
+
+| Intent | Call |
+|---|---|
+| Toggle a "Show in Store" component | `PUT {M}/ui/{landing}/toggleStoreComponent` — `{ "componentName": "subscriptions" }` |
+| Virtual item groups | `GET {M}/ui/{landing}/store/virtualItems` |
+| Goods in one group | `GET {M}/ui/{landing}/store/{groupId}` |
+| Virtual currencies / packages | `GET {M}/ui/{landing}/store/virtual_currency`, `…/virtual_currency/package` |
+| Game keys | `GET {M}/ui/{landing}/store/games` |
+| Subscription plans | `GET {M}/ui/{landing}/subscriptionPlans` |
+| Configured SKUs from PA | `GET {M}/ui/{landing}/sku` |
+| Store API retry policy | `PUT {M}/landing/{domain}/store-api-retry` |
+
+Catalog contents themselves stay with `catalog-design`; these endpoints only bind an
+existing catalog into the portal.
+
+## Draft — Launcher
+
+| Intent | Call |
+|---|---|
+| Launchers available to the project | `GET {M}/ui/{landing}/launcherList` → `[{ id, name }]` |
+| Create a news item | `POST /launcher/{launcherId}/merchant/{merchantId}/landing/{landingId}/constructor/news` |
+| Update / delete a news item | `PUT` / `DELETE …/constructor/news/{newsId}` |
+| List news (constructor) | `GET /launcher/{launcherId}/constructor/news?offset=&limit=` |
+| Read one news item | `GET /launcher/{launcherId}/constructor/news/{newsId}` |
+| Public news feed | `GET /public/launcher/{launcherId}/project/{projectId}/news` |
+
+Launcher **builds, installers, and downloads are not in this API.** A Launcher is
+only `completed` with a real Launcher on the project, an uploaded build, a generated
+installer, and a verified installer download — evidence that must come from the
+Launcher product itself. Missing it means `blocked_capability`, never `completed`.
 
 ## Draft — theme and assets
 
-Theme has no dedicated endpoint; it is a `site` patch through the batch call:
+Theme is a `site` patch through the batch call:
 
 ```json
 {"t": {"type": "site", "id": "<landingId>",
@@ -99,90 +169,95 @@ Theme has no dedicated endpoint; it is a `site` patch through the batch call:
 
 | Intent | Call |
 |---|---|
-| List image/font assets | `GET {M}/assets/{landing-id}/site` |
-| Upload asset (`multipart/form-data`, part `file`) | `POST {M}/assets/{landing-id}/site` |
-| Delete asset | `DELETE {M}/assets/{landing-id}/{asset-id}` |
+| Theme as a CSS file | `GET {M}/landing/{domain}/theme` |
+| List assets | `GET {M}/assets/{collectionId}/{collectionName}` |
+| Upload asset (`multipart/form-data`, part `file`) | `POST {M}/assets/{collectionId}/{collectionName}` |
+| Update / delete asset | `PATCH` / `DELETE {M}/assets/{collectionId}/{assetId}` |
 
-Upload only partner-approved assets. Never reuse assets found on another portal.
+`collectionId` equals the `landingId`. Upload only partner-approved assets.
 
 ## Draft — copy and localization
 
-**Block text does not live on the block.** Blocks reference an `L:` id and the
-text lives in the localization store, so patching `["values","title"]` through
-the batch endpoint does nothing. Set copy here instead.
+**Block text does not live on the block.** Blocks reference an `L:` id and the text
+lives in the localization store, so patching `["values","title"]` does nothing.
 
 | Intent | Call | Body |
 |---|---|---|
-| Read the whole store (all locales/pages) | `GET /api/localization/extract/{slug}` | — |
-| Set one string | `POST /api/localization/update/{slug}` | `{ "pageId": "<pageId>", "id": "L:<uuid>", "locale": "en-US", "value": "<p>…</p>" }` |
-| Set many for one locale | `POST /api/localization/update-many/{slug}` | `{ "locale": "en-US", "perScopeValues": { "<pageId>": { "L:<id>": { "translation": "<p>…</p>" } } } }` |
-| Add a locale | `POST {M}/landing/{slug}/language` | `{ "language": "en-US" }` |
-| Remove a locale | `DELETE {M}/landing/{slug}/language` | `{ "language": "en-US" }` |
+| Read the whole store | `GET /localization/extract/{domain}` | — |
+| Read one locale of one page | `GET /localization/{domain}/{locale}/{pageId}` | — |
+| Set one string | `POST /localization/update/{domain}` | `{ "pageId", "id": "L:<uuid>", "locale": "en-US", "value": "<p>…</p>" }` |
+| Set many for one locale | `POST /localization/update-many/{domain}` | `{ "locale", "perScopeValues": { "<pageId>": { "L:<id>": { "translation": "<p>…</p>" } } } }` |
+| Replace the whole store | `POST /localization/load/{domain}` | full common + pages |
+| Add / remove a locale | `POST` / `DELETE {M}/landing/{domain}/language` | `{ "language": "en-US" }` |
 
-- Namespaces: page strings live under `pages.<pageId>.texts."L:<id>"`, shared
-  strings under `common."L:<id>"` (pass `common` as the scope key).
-- Keep the `L:` prefix on ids. Values are HTML — wrap copy in tags.
-- In `update-many` the per-id value **must** be `{ "translation": "<html>" }`.
-  Any other shape (bare string, `value`, `text`, `translations`) returns 200 and
-  writes an **empty** string for that locale — destructive. Other locales on the
-  same string are preserved.
+- Page strings live under `pages.<pageId>.texts."L:<id>"`, shared strings under
+  `common."L:<id>"` (pass `common` as the scope key). Keep the `L:` prefix.
+- In `update-many` the per-id value **must** be `{ "translation": "<html>" }`. Any
+  other shape returns 200 and writes an **empty** string for that locale —
+  destructive. Other locales on the same string are preserved.
 
-## Domain, analytics, access
+## Domain, analytics, access, Login
 
 | Intent | Call | Body |
 |---|---|---|
-| Attach external domain | `POST {M}/landing/{slug}/domains` | `{ "domain": "shop.example.com" }` |
-| Change domain | `PATCH {M}/landing/{slug}/domains` | `{ "domain": "…" }` |
-| Remove domain | `DELETE {M}/landing/{slug}/domains` | — |
-| Verify DNS | `GET {M}/landing/{slug}/domains/lookup` | — |
-| Add analytics connector | `PUT {M}/landing/{slug}/applications` | `{ "type": "gtm" \| "ga", "value": "<id>" }` |
-| Remove connector | `DELETE {M}/landing/{slug}/applications` | `{ "type": "gtm" }` |
-| Update access restrictions | `PATCH {M}/landing/{slug}/restrictions` | restriction set |
-| Clear restrictions | `DELETE {M}/landing/{slug}/restrictions` | — |
+| Attach / change / remove external domain | `POST` / `PATCH` / `DELETE {M}/landing/{domain}/domains` | `{ "domain": "shop.example.com" }` |
+| Verify DNS | `GET {M}/landing/{domain}/domains/lookup` | — |
+| Analytics connector | `PUT` / `DELETE {M}/landing/{domain}/applications` | `{ "type": "gtm" \| "ga", "value": "<id>" }` |
+| Access restrictions | `PATCH` / `DELETE {M}/landing/{domain}/restrictions` | restriction set |
+| Create a Login project | `POST /login/projects?merchantId=` | — |
+| Read Login config | `GET /login/configuration/{loginId}` | — |
+| Login widget settings | `POST` / `GET` / `PUT /login/widget-customization/{loginId}` | — |
+| Publish widget settings | `POST /login/widget-customization/{loginId}/publish` | — |
+
+Login *behaviour* — auth methods, JWT validation, account binding — stays with
+`login-setup`. Sign-in succeeding is not binding succeeding; both must be verified.
 
 ## Verify and preview
 
 | Intent | Call |
 |---|---|
-| Enable public preview | `GET /api/landing/{slug}/public-preview/enable-preview` |
-| Disable public preview | `GET /api/landing/{slug}/public-preview/disable-preview` |
-| Current preview token/link | `GET /api/landing/{slug}/public-preview/public-preview-last-token` |
-| Readiness check before publish | `GET {M}/landing/{slug}/check` |
+| Enable public preview (returns the token) | `GET /landing/{domain}/public-preview/enable-preview` |
+| Get the public preview link | `GET /landing/{domain}/public-preview/public-preview-link` |
+| Disable public preview | `GET /landing/{domain}/public-preview/disable-preview` |
+| Render one page directly | `GET /preview/{domain}/{page}/{locale}` (optional `?version=`) |
+| Readiness check before publish | `GET {M}/landing/{domain}/check` → `{ "checkSku": true }` |
 
-The preview link is `https://sitebuilder.xsolla.com/preview/{slug}`, valid only
-when the token response reports `enabled` with a `lastToken`. Re-read
-`structure` after every change group; a mutation response alone is not evidence.
+Re-read `structure` after every change group; a mutation response alone is not
+evidence. `check` gates on required fields such as a non-empty SKU.
 
 ## Publish and rollback
 
-**There is no publish endpoint.** Publication is `needs_human`: request explicit
-approval, hand the partner the exact manual step, and resume with live
-verification once they confirm. Never report a portal as published on the
-strength of a 200 from any other call.
-
 | Intent | Call |
 |---|---|
-| List archived versions | `GET {M}/landing/{slug}/versions` |
-| Apply an archived version (rollback) | `PUT {M}/landing/{slug}/version/{version-id}` |
+| Publish the site | `POST {M}/landing/{domain}/publication` |
+| List archived versions | `GET {M}/landing/{domain}/versions` |
+| Apply an archived version (rollback) | `PUT {M}/landing/{domain}/versions/{versionId}` |
+
+Publication returns `domain`, `languages`, `last_published`, and `user_published`.
+Publishing still requires explicit partner approval, and `published_verified` still
+requires the public URL to serve the expected version and routes — a `200` from
+`publication` is a receipt, not proof the live site is correct.
 
 ## Known API issues
 
-Confirmed on a live portal, 2026-08-14. Both are tooling-side, not spec-side —
-report them as `failed` with the response, never as `completed`:
+Confirmed against a live portal, 2026-08-14. Both are tooling-side — report them as
+`failed` with the response, never as `completed`:
 
 - The public preview URL can return **403** while the token response reports the
-  preview as enabled. Fall back to a structure read-back as Verify evidence and
-  disclose the preview gap in the handoff.
-- `GET .../landing/{slug}/check` can return **400** for a missing
-  `draftPagesIds`, which the documented request does not carry. When it does,
-  readiness is `blocked_capability`; verify pages and blocks individually
-  instead and say so in the report.
+  preview as enabled. The CLI reads `public-preview/public-preview-last-token`,
+  which is not part of the published API; use `public-preview-link` and fall back to
+  a structure read-back as Verify evidence.
+- The readiness check can return **400** for a missing `draftPagesIds`, a parameter
+  the published contract does not define — the deployed endpoint is ahead of its
+  documentation. When it does, readiness is `blocked_capability`; verify pages and
+  blocks individually and say so in the report.
 
 ## Failure → status mapping
 
 | Response | Status | Action |
 |---|---|---|
-| `401` / `403 not_enough_permissions` | `needs_access` | preserve the ledger, reauthenticate, re-read state, resume |
-| `404 merchant_projects_info_not_found` on create | `needs_human` | Shop Builder is not enabled for the project; the partner enables it in Publisher Account |
-| `500` from a `ui/*` path | — | wrong key: a slug was sent where `landingId` is required. Fix and retry; this is not a capability block |
-| Publish request | `needs_human` | no endpoint exists |
+| `401` / `403` | `needs_access` | preserve the ledger, reauthenticate, re-read state, resume |
+| `404` on create | `needs_human` | Shop Builder is not enabled for the project; the partner enables it in Publisher Account |
+| `409` from `POST .../portal` | — | the portal is already initialized: read the structure and resume instead of recreating |
+| `500` from a `ui/*` path | — | wrong key: a domain was sent where `landingId` is required. Fix and retry; not a capability block |
+| Launcher build / installer / download | `blocked_capability` | not exposed by this API |
