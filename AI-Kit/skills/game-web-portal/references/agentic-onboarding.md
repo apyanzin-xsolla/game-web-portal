@@ -106,7 +106,7 @@ Never recreate discovered existing entities.
 ### 3. One change group
 
 Portal structure — creation and landing type, pages, blocks, theme, assets, copy
-and localization, domain, analytics, preview — runs against the Site Builder API
+and localization, domain, analytics, preview — runs against the Shop Builder API
 in [portal-api.md](portal-api.md). Use related skills for everything else,
 instead of repeating their command recipes:
 

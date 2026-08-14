@@ -75,7 +75,7 @@ Publish → Live verification → Handoff
   second run resumes instead of building a duplicate portal.
 - **Draft** — makes one change group at a time, reading each change back afterward.
   The portal itself — pages, blocks, theme, copy, localization, domain, preview —
-  runs against the Site Builder API documented in the skill. Catalog, Login, and
+  runs against the Shop Builder API documented in the skill. Catalog, Login, and
   checkout work is delegated to the sibling skills in this collection rather than
   duplicated here.
 - **Verify** — refreshes the preview and confirms the rendered output.
@@ -123,7 +123,7 @@ skills/game-web-portal/
 ├── SKILL.md                      the agent's entry point
 └── references/
     ├── agentic-onboarding.md     the full specification
-    └── portal-api.md             the Site Builder API the portal steps call
+    └── portal-api.md             the Shop Builder API the portal steps call
 ```
 
 `SKILL.md` is what the agent reads first. It loads

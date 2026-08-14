@@ -1,7 +1,7 @@
 # Xsolla Game Web Portal — Shop Builder API reference
 
 The portal itself (sites, pages, blocks, theme, copy, domain, preview, publication)
-is Site Builder. This file is the API surface for Steps 3–8. Catalog, Login, and
+is Shop Builder. This file is the API surface for Steps 3–8. Catalog, Login, and
 checkout stay delegated — see `SKILL.md`.
 
 ## Context

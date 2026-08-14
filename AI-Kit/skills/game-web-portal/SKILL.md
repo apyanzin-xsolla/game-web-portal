@@ -91,7 +91,7 @@ Publish → Live verification → Handoff
    `409` once initialized, which means resume, not recreate). Then apply one change
    group at a time across Home, News, Rewards, Web Shop, Community, and optional
    Launcher. Portal structure itself — pages, blocks, theme, assets, copy and
-   localization, domain, analytics, preview — runs against the Site Builder API in
+   localization, domain, analytics, preview — runs against the Shop Builder API in
    [references/portal-api.md](references/portal-api.md). Delegate the surrounding
    products rather than duplicating their recipes: `merchant-setup` for
    merchant/project/API key, `catalog-design` for catalog and pricing, `login-setup`
@@ -124,7 +124,7 @@ Two references, both loaded before issuing changes:
 - [references/agentic-onboarding.md](references/agentic-onboarding.md) — the full
   specification: `GIVEN / WHEN / THEN` acceptance scenarios, the per-state evidence
   contract, and the handoff report template.
-- [references/portal-api.md](references/portal-api.md) — the Site Builder API for
+- [references/portal-api.md](references/portal-api.md) — the Shop Builder API for
   Steps 2–8: endpoints per stage, the domain vs landing `_id` split, the localization
   payload shape, known API issues, and the response → status mapping.
 
