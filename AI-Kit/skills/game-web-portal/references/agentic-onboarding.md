@@ -110,10 +110,10 @@ and localization, domain, analytics, preview — runs against the Shop Builder A
 in [portal-api.md](portal-api.md). Use related skills for everything else,
 instead of repeating their command recipes:
 
-- `publisher-onboarding` — merchant/project/API key.
-- `catalog-admin` — catalog and pricing.
-- `login-debug` — Login.
-- `payment-flow` / `webshop-checkout` — checkout.
+- `merchant-setup` — merchant/project/API key.
+- `catalog-design` — catalog and pricing.
+- `login-setup` — Login.
+- `headless-checkout-integration` — checkout.
 
 Sections: Home, News, Rewards, Web Shop, Community, optional Launcher.
 Placeholders require approval and visible labels. Launcher requires a real
