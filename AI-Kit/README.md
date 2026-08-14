@@ -74,8 +74,10 @@ Publish → Live verification → Handoff
 - **Discover** — reads what already exists at the domain and captures its IDs, so a
   second run resumes instead of building a duplicate portal.
 - **Draft** — makes one change group at a time, reading each change back afterward.
-  Catalog, Login, and checkout work is delegated to the sibling skills in this
-  collection rather than duplicated here.
+  The portal itself — pages, blocks, theme, copy, localization, domain, preview —
+  runs against the Site Builder API documented in the skill. Catalog, Login, and
+  checkout work is delegated to the sibling skills in this collection rather than
+  duplicated here.
 - **Verify** — refreshes the preview and confirms the rendered output.
 - **Human review** — shows you what's done, what's a placeholder, and what's
   blocked, then waits for your approval.
@@ -120,10 +122,13 @@ once you've cleared the gate.
 skills/game-web-portal/
 ├── SKILL.md                      the agent's entry point
 └── references/
-    └── agentic-onboarding.md     the full specification
+    ├── agentic-onboarding.md     the full specification
+    └── portal-api.md             the Site Builder API the portal steps call
 ```
 
 `SKILL.md` is what the agent reads first. It loads
 [the specification](skills/game-web-portal/references/agentic-onboarding.md) —
 acceptance scenarios, the evidence required at each state, and the handoff
-template — before issuing any commands.
+template — and [the API reference](skills/game-web-portal/references/portal-api.md)
+— endpoints per stage, known API issues, and how each response maps to a status —
+before issuing any commands.

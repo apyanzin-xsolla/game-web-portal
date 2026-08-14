@@ -11,8 +11,9 @@ description: >-
   publish". PC and Steam only — App Store and Google Play onboarding is out of scope
   and returns needs_input.
 metadata:
-  owner: apyanzin-xsolla
+  owner: a.pyanzin
   domain: orchestrator
+  status: draft
 ---
 
 # Game Web Portal
@@ -42,7 +43,10 @@ listed under Steps.
 - Authenticated publisher context.
 - Confirmed merchant ID and project ID — see `merchant-setup`.
 - API key for catalog and payment operations where required.
-- Shop Builder access for the target project.
+- Shop Builder access for the target project. Portal operations authenticate with a
+  publisher session cookie, not the project API key — see
+  [references/portal-api.md](references/portal-api.md). Treat `401/403` as
+  `needs_access`, never as a capability block.
 - Approved content and brand assets. Never invent or reuse partner identifiers,
   credentials, content, prices, assets, or URLs.
 - Required input, collected in a single question rather than one at a time:
@@ -74,24 +78,33 @@ Publish → Live verification → Handoff
    never choose an ambiguous match.
 2. **Preflight** — validate the exact Steam host, confirm merchant/project, domain,
    and locale, and disclose any unsupported or human-gated step up front.
-3. **Discover** — list existing websites and read the target structure. Capture
-   landing, page, and block IDs. Never recreate a discovered existing entity; resume
-   at the first incomplete item.
+3. **Discover** — list existing portals and read the target structure
+   (`GET .../landings`, `GET .../landing/{slug}`, `GET .../landing/{slug}/structure`).
+   Capture the landing `_id`, page IDs, and block IDs before any mutation — block and
+   theme calls are keyed by landing `_id`, not the slug. Never recreate a discovered
+   existing entity; resume at the first incomplete item.
 4. **Draft** — apply one change group at a time across Home, News, Rewards, Web Shop,
-   Community, and optional Launcher. Delegate rather than duplicating recipes:
-   `merchant-setup` for merchant/project/API key, `shop-setup` for pages, blocks,
-   theme, localization, and preview, `catalog-design` for catalog and pricing,
-   `login-setup` for Login, `headless-checkout-integration` for checkout.
-   Placeholders require approval and a visible label.
-5. **Verify** — read back every changed entity, refresh the preview, confirm rendered
-   output, and update the ledger. Keep unverified items out of **Completed**.
+   Community, and optional Launcher. Portal structure itself — portal creation and
+   landing type, pages, blocks, theme, assets, copy and localization, domain,
+   analytics, preview — runs against the Site Builder API in
+   [references/portal-api.md](references/portal-api.md). Delegate the surrounding
+   products rather than duplicating their recipes: `merchant-setup` for
+   merchant/project/API key, `catalog-design` for catalog and pricing, `login-setup`
+   for Login, `headless-checkout-integration` for checkout. Placeholders require
+   approval and a visible label.
+5. **Verify** — read back every changed entity (`structure`, page, and block reads),
+   refresh the preview, run the readiness check (`GET .../landing/{slug}/check`),
+   confirm rendered output, and update the ledger. A mutation response is not
+   evidence. Keep unverified items out of **Completed**.
 6. **Human review** — present completed items, placeholders, blockers, and failures.
    `draft_ready` requires correct ownership, domain, type, and locale, no duplicate
    routes, verified content, disclosed placeholders, explicit Login and commerce
    status, and no readiness failure.
-7. **Publish** — require explicit approval. Use a supported command, or return
-   `needs_human` and resume after confirmed manual publication. Never publish
-   automatically when no supported command exists.
+7. **Publish** — require explicit approval. The Site Builder API exposes no publish
+   endpoint, so publication is `needs_human`: hand the partner the exact manual step
+   and resume after they confirm. Never publish automatically, and never infer
+   publication from a `200` on any other call. Rollback is
+   `GET .../landing/{slug}/versions` plus `PUT .../landing/{slug}/version/{version-id}`.
 8. **Live verification** — `published_verified` requires the expected public version
    and routes, working Login and account binding, and verified Web Shop and Launcher
    outcomes.
@@ -101,10 +114,14 @@ Publish → Live verification → Handoff
 Status values: `completed`, `placeholder`, `needs_input`, `needs_access`,
 `needs_human`, `blocked_capability`, `failed`.
 
-The full specification — `GIVEN / WHEN / THEN` acceptance scenarios, the per-state
-evidence contract, and the handoff report template — is in
-[references/agentic-onboarding.md](references/agentic-onboarding.md). Load it before
-issuing changes.
+Two references, both loaded before issuing changes:
+
+- [references/agentic-onboarding.md](references/agentic-onboarding.md) — the full
+  specification: `GIVEN / WHEN / THEN` acceptance scenarios, the per-state evidence
+  contract, and the handoff report template.
+- [references/portal-api.md](references/portal-api.md) — the Site Builder API for
+  Steps 3–7: endpoints per stage, the slug vs landing `_id` split, the localization
+  payload shape, known API issues, and the response → status mapping.
 
 ## Common pitfalls
 

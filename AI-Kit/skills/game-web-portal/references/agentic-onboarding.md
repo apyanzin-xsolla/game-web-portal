@@ -105,10 +105,12 @@ Never recreate discovered existing entities.
 
 ### 3. One change group
 
-Use related skills instead of repeating command recipes:
+Portal structure — creation and landing type, pages, blocks, theme, assets, copy
+and localization, domain, analytics, preview — runs against the Site Builder API
+in [portal-api.md](portal-api.md). Use related skills for everything else,
+instead of repeating their command recipes:
 
 - `publisher-onboarding` — merchant/project/API key.
-- `shopbuilder` — pages, blocks, theme, localization, preview.
 - `catalog-admin` — catalog and pricing.
 - `login-debug` — Login.
 - `payment-flow` / `webshop-checkout` — checkout.
