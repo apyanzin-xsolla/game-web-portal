@@ -105,11 +105,13 @@ Publish → Live verification → Handoff
    `draft_ready` requires correct ownership, domain, type, and locale, no duplicate
    routes, verified content, disclosed placeholders, explicit Login and commerce
    status, and no readiness failure.
-7. **Publish** — require explicit approval, then `POST .../landing/{domain}/publication`.
-   Never publish automatically, and never treat its `200` as proof the live site is
-   correct — it is a receipt, and `last_published` still has to be confirmed against
-   the public URL in Step 8. Rollback is `GET .../landing/{domain}/versions` plus
-   `PUT .../landing/{domain}/versions/{versionId}`.
+7. **Publish** — require explicit approval, then `POST .../landing/{domain}/publication`
+   with the selected page IDs: publication is per-page, the main page must be live or
+   in the same selection, no section may be empty, and the licensing agreement must be
+   signed. Never publish automatically, and never treat the `200` as proof the live
+   site is correct — it is a receipt, and `last_published` still has to be confirmed
+   against the public URL in Step 8. Rollback is `GET .../landing/{domain}/versions`
+   plus `PUT .../landing/{domain}/versions/{versionId}`.
 8. **Live verification** — `published_verified` requires the expected public version
    and routes, working Login and account binding, and verified Web Shop and Launcher
    outcomes.

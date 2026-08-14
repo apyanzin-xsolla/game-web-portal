@@ -60,6 +60,14 @@ Prefer the generated bootstrap over hand-assembling pages and blocks.
 | Add a block-set template | `POST {M}/landing/{domain}/template` | `{ "type": "steam", "template": "home" \| "store" \| "news" }` |
 | Finalize the landing type | `PUT {M}/landing/{domain}/admin/change-landing-type` | `{ "type": "topup" \| "store" \| "sellingpage" }` |
 
+Page templates available when adding a page (from the Publisher Account builder):
+`Blank`, `Store`, `Rewards` (daily rewards and reward-system blocks), `News`,
+`Loyalty shop`, `Promocodes`, `Single game` (accepts a Steam link and generates the
+description, images, and styling from it), `Games catalog`, `Items store`. The
+portal's Rewards and News sections map onto the templates of those names; there is
+**no Community template** — that section needs a Blank page and explicit blocks, so
+treat it as `needs_input` rather than guessing a layout.
+
 - `POST .../portal` only works on a landing with **no type assigned** — it returns
   **409** once a portal structure exists. On resume, read the structure instead of
   re-initializing.
@@ -151,6 +159,13 @@ existing catalog into the portal.
 | Read one news item | `GET /launcher/{launcherId}/constructor/news/{newsId}` |
 | Public news feed | `GET /public/launcher/{launcherId}/project/{projectId}/news` |
 
+News articles are Launcher content, not page content: they live in Publisher Account
+under **Distribution → Launcher → Content tiles** as content groups plus articles of
+type `News`, each created in `Draft` and only visible once switched to `Publish`.
+A launcher must exist before articles can be published — but it needs no games and
+no Login configured for this purpose. A News section whose articles are still
+`Draft` is `placeholder`, not `completed`.
+
 Launcher **builds, installers, and downloads are not in this API.** A Launcher is
 only `completed` with a real Launcher on the project, an uploaded build, a generated
 installer, and a verified installer download — evidence that must come from the
@@ -233,6 +248,19 @@ evidence. `check` gates on required fields such as a non-empty SKU.
 | List archived versions | `GET {M}/landing/{domain}/versions` |
 | Apply an archived version (rollback) | `PUT {M}/landing/{domain}/versions/{versionId}` |
 
+**Publication is per-page, not whole-site.** The builder publishes a *selection* of
+pages — which is what the deployed `check` and `publication` calls mean by
+`draftPagesIds`. Resolve the page IDs from `structure` and pass the ones being
+published; publishing "the portal" without a selection is what produces a `400`.
+
+Preconditions, all checkable before the call:
+
+- No empty sections anywhere in the builder.
+- The Xsolla licensing agreement is signed — `GET /merchant/merchants/{merchantId}/agreements`.
+- The main page is already published, or included in this same selection. **Child
+  pages cannot be published before the main page**, so order the selection
+  accordingly or the call fails.
+
 Publication returns `domain`, `languages`, `last_published`, and `user_published`.
 Publishing still requires explicit partner approval, and `published_verified` still
 requires the public URL to serve the expected version and routes — a `200` from
@@ -240,17 +268,19 @@ requires the public URL to serve the expected version and routes — a `200` fro
 
 ## Known API issues
 
-Confirmed against a live portal, 2026-08-14. Both are tooling-side — report them as
-`failed` with the response, never as `completed`:
+Confirmed against a live portal, 2026-08-14:
 
 - The public preview URL can return **403** while the token response reports the
   preview as enabled. The CLI reads `public-preview/public-preview-last-token`,
   which is not part of the published API; use `public-preview-link` and fall back to
-  a structure read-back as Verify evidence.
-- The readiness check can return **400** for a missing `draftPagesIds`, a parameter
-  the published contract does not define — the deployed endpoint is ahead of its
-  documentation. When it does, readiness is `blocked_capability`; verify pages and
-  blocks individually and say so in the report.
+  a structure read-back as Verify evidence. Report a persistent 403 as `failed` with
+  the response — never as `completed`.
+- The readiness check returns **400** when `draftPagesIds` is missing. This is not a
+  capability gap: the parameter is the page selection described under Publish, and
+  the published contract simply omits it. Send the selected page IDs. The exact
+  field shape is **unverified** — it is in no spec available here, only in the
+  deployed endpoint and the builder UI — so confirm it against a live call before
+  relying on it, and treat a still-failing check as `failed`, not `completed`.
 
 ## Failure → status mapping
 
