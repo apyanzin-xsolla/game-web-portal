@@ -5,9 +5,10 @@ The version of this skill packaged for the Xsolla AI-Kit skill collection.
 ## What Agentic Onboarding is
 
 Onboarding done by an AI agent instead of a person clicking through a dashboard.
-You give the agent a Steam store URL and your identifiers. It drives Xsolla CLI to
-create or resume your Game Web Portal, checks the result of every change it makes,
-and hands back a report you can audit line by line.
+You give the agent your PC game details and identifiers. A Steam URL is optional:
+when supplied, it can bootstrap verified metadata and assets. The agent drives
+Xsolla CLI to create or resume your Game Web Portal, checks every change, and hands
+back a report you can audit line by line.
 
 What makes it trustworthy is a single rule: **the agent reports only what it
 verified.** It never invents an ID, a command, a price, or a completion. Anything it
@@ -17,13 +18,15 @@ wasn't verified is a failure.
 
 ## What it builds
 
-A Game Web Portal for a PC or Steam title:
+A Game Web Portal for a PC title:
 
 - Pages: Home, News, Rewards, Web Shop, Community, and an optional Launcher.
 - Wiring: catalog, Login, theme, localization, preview, and publication readiness.
 
-PC and Steam only. App Store and Google Play onboarding is out of scope and returns
-`needs_input`.
+PC only. A Steam URL is optional and is not a production dependency. Skip it by
+providing `game_name` plus approved metadata, copy, and brand assets manually. If a
+store URL is supplied, only an exact `store.steampowered.com` host is accepted.
+App Store and Google Play onboarding is out of scope and returns `needs_input`.
 
 ## How to use it
 
@@ -56,10 +59,12 @@ merchant_id:
 project_id:
 domain:
 game_name:
-store_url:
+store_url: optional
 primary_locale:
 existing_portal_policy: update | create-new
 ```
+
+Without `store_url`, also provide approved game description and brand assets.
 
 ## What the agent does
 
@@ -68,9 +73,11 @@ Intake → Preflight → Discover → Draft → Verify → Human review →
 Publish → Live verification → Handoff
 ```
 
-- **Intake** — collects the values above; asks rather than guessing.
-- **Preflight** — confirms the store URL host is exactly `store.steampowered.com`,
-  and that your merchant, project, domain, and locale check out.
+- **Intake** — collects required values and any optional Steam URL; asks rather
+  than guessing.
+- **Preflight** — confirms merchant, project, domain, locale, and PC scope. If
+  `store_url` is supplied, it also validates the exact `store.steampowered.com`
+  host. If omitted, the Steam parsing step is skipped.
 - **Discover** — reads what already exists at the domain and captures its IDs, so a
   second run resumes instead of building a duplicate portal.
 - **Draft** — makes one change group at a time, reading each change back afterward.

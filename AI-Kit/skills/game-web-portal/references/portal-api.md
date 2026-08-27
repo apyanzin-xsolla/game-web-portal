@@ -38,24 +38,28 @@ return **500**. Resolve `landingId` once during Discover and reuse it.
 Discover is mandatory before any mutation: it supplies `landingId`, page IDs, block
 IDs, and current ordering, and it is how resume avoids building a duplicate portal.
 
-## Preflight — read the Steam title
+## Optional preflight — read the Steam title
 
 | Intent | Call | Body |
 |---|---|---|
 | Pull game info from the store URL | `GET {M}/landing/{domain}/parsing` | `{ "type": "steam" \| "gplay" \| "topup" \| "sellingpage", "target": "https://store.steampowered.com/app/…" }` |
 
-Use this to confirm the title before drafting; PC/Steam only per the skill's entry
-conditions. Never substitute invented game metadata when parsing fails — return
-`needs_input`.
+Use this call only when `store_url` is supplied. The Steam URL is an optional
+bootstrap shortcut, not a production dependency. If it is omitted, skip this
+endpoint and continue with the supplied `game_name` plus approved metadata and
+assets. If a supplied URL is invalid or parsing fails, never substitute invented
+metadata — return `needs_input`.
 
 ## Draft — bootstrap the portal
 
-Prefer the generated bootstrap over hand-assembling pages and blocks.
+Prefer the generated bootstrap when a Steam URL is available. Without one, create
+the site, finalize its type, add the required pages/blocks, and populate them only
+with partner-approved metadata and assets.
 
 | Step | Call | Body |
 |---|---|---|
 | Create the site | `POST {M}/landing/{domain}` | `{ "name": "<Name>", "type": "topup", "colorScheme"?, "theme"? }` |
-| Generate structure from the store URL | `POST {M}/landing/{domain}/structure` | `{ "type": "steam", "target": "<Steam URL>" }` |
+| Generate structure from the optional store URL | `POST {M}/landing/{domain}/structure` | `{ "type": "steam", "target": "<Steam URL>" }` |
 | Or initialize a portal template | `POST {M}/landing/{domain}/portal` | single-page vs hub (multi-page) layout; theme derived from the game icon |
 | Add a block-set template | `POST {M}/landing/{domain}/template` | `{ "type": "steam", "template": "home" \| "store" \| "news" }` |
 | Finalize the landing type | `PUT {M}/landing/{domain}/admin/change-landing-type` | `{ "type": "topup" \| "store" \| "sellingpage" }` |

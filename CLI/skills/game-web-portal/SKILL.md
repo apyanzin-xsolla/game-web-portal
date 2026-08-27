@@ -1,6 +1,6 @@
 ---
 name: game-web-portal
-description: Set up, create, configure, or resume an Xsolla Game Web Portal for a PC or Steam game with Xsolla CLI. Use when the request involves a PC Game Portal, Web Shop, Launcher, Login, preview, readiness, or publication.
+description: Set up, create, configure, or resume an Xsolla Game Web Portal for a PC game with Xsolla CLI, optionally using a Steam URL to import metadata and assets. Use when the request involves a PC Game Portal, Web Shop, Launcher, Login, preview, readiness, or publication.
 ---
 
 # Xsolla Game Web Portal
@@ -10,7 +10,9 @@ evidence-backed handoff.
 
 ## Scope
 
-- PC/Steam only.
+- PC only. A Steam URL is optional and may be skipped.
+- If supplied, the URL host must be exactly `store.steampowered.com`.
+- Without a Steam URL, use only partner-approved game metadata and assets.
 - App Store and Google Play URLs return `needs_input`.
 - Load the full workflow reference only after platform and CLI context are
   confirmed.

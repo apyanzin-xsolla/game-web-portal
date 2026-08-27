@@ -1,14 +1,15 @@
 ---
 name: game-web-portal
 description: >-
-  Set up, create, configure, or resume an Xsolla Game Web Portal for a PC or Steam
-  game. Use when onboarding a PC or Steam title, creating or resuming a Game Portal,
+  Set up, create, configure, or resume an Xsolla Game Web Portal for a PC game,
+  optionally using a Steam URL to import metadata and assets. Use when onboarding
+  a PC title, creating or resuming a Game Portal,
   wiring a Web Shop, Launcher, or Login into a portal, generating a preview link, or
   checking readiness and publication status. Covers the Home, News, Rewards, Web Shop,
   Community, and optional Launcher sections plus catalog, theme, localization, preview,
   and publication gates. Invoke for "set up my PC Game Portal", "resume my portal
   without duplicating pages", "give me a verified preview", or "is my portal ready to
-  publish". PC and Steam only — App Store and Google Play onboarding is out of scope
+  publish". PC only — App Store and Google Play onboarding is out of scope
   and returns needs_input.
 metadata:
   owner: a.pyanzin
@@ -18,7 +19,7 @@ metadata:
 
 # Game Web Portal
 
-Create or resume a verified PC/Steam Game Web Portal and return an evidence-backed
+Create or resume a verified PC Game Web Portal and return an evidence-backed
 partner handoff. Honest partial completion is correct; simulated completion is failure.
 
 ## When to use
@@ -28,8 +29,11 @@ Web Shop, Launcher, Login binding, preview link, readiness, publication.
 
 Entry conditions:
 
-- The title ships on PC and the store URL host is exactly `store.steampowered.com`.
-  Mobile, unknown, invalid, or spoofed hosts return `needs_input`.
+- The title ships on PC. A Steam URL is optional and may be skipped.
+- If a store URL is supplied, its host must be exactly `store.steampowered.com`.
+  Mobile, unknown, invalid, or spoofed supplied URLs return `needs_input`.
+- Without a Steam URL, continue using the supplied `game_name` and partner-approved
+  metadata, copy, and assets. Never invent missing content.
 - A publisher context is authenticated and a merchant/project pair is confirmed.
 - The caller has decided whether an existing portal at the domain should be updated
   or a new one created.
@@ -56,13 +60,14 @@ merchant_id:
 project_id:
 domain:
 game_name:
-store_url:
 primary_locale:
 existing_portal_policy: update | create-new
 ```
 
-Optional: approved logo, hero, screenshots, colors and fonts; an existing Store
-catalog; additional locales; analytics IDs; an existing Launcher and build.
+Optional: `store_url` (Steam), approved description, logo, hero, screenshots,
+colors and fonts; an existing Store catalog; additional locales; analytics IDs;
+an existing Launcher and build. The Steam URL is a bootstrap shortcut, not a
+production dependency.
 
 ## Steps
 
@@ -76,21 +81,23 @@ Publish → Live verification → Handoff
 
 1. **Intake** — collect the required input above. Resolve every ambiguity by asking;
    never choose an ambiguous match.
-2. **Preflight** — validate the exact Steam host, read the title through
-   `GET .../landing/{domain}/parsing` with `type: steam`, confirm merchant/project,
-   domain, and locale, and disclose any unsupported or human-gated step up front.
-   Never substitute invented game metadata when parsing fails.
+2. **Preflight** — confirm PC scope, merchant/project, domain, and locale. If
+   `store_url` is supplied, validate the exact Steam host and read the title through
+   `GET .../landing/{domain}/parsing` with `type: steam`. If it is omitted, skip
+   parsing and use only partner-approved metadata and assets. Never substitute
+   invented game metadata when parsing fails.
 3. **Discover** — list existing portals and read the target structure
    (`GET .../landings`, `GET .../landing/{domain}`, `GET .../landing/{domain}/structure`).
    Capture the landing `_id`, page IDs, and block IDs before any mutation — block and
    theme calls are keyed by landing `_id`, not the domain. Never recreate a discovered
    existing entity; resume at the first incomplete item.
-4. **Draft** — bootstrap first: generate the portal from the store URL
-   (`POST .../landing/{domain}/structure` with `type: steam`, or
-   `POST .../landing/{domain}/portal` on a landing with no type yet — it returns
-   `409` once initialized, which means resume, not recreate). Then apply one change
-   group at a time across Home, News, Rewards, Web Shop, Community, and optional
-   Launcher. Portal structure itself — pages, blocks, theme, assets, copy and
+4. **Draft** — when a Steam URL is supplied, bootstrap from it with
+   `POST .../landing/{domain}/structure` and `type: steam`. Without one, create the
+   portal structure and populate it with approved metadata/assets instead. On a
+   landing with no type, `POST .../landing/{domain}/portal` initializes the template;
+   `409` means resume, not recreate. Then apply one change group at a time across
+   Home, News, Rewards, Web Shop, Community, and optional Launcher. Portal structure
+   itself — pages, blocks, theme, assets, copy and
    localization, domain, analytics, preview — runs against the Shop Builder API in
    [references/portal-api.md](references/portal-api.md). Delegate the surrounding
    products rather than duplicating their recipes: `merchant-setup` for
@@ -115,8 +122,8 @@ Publish → Live verification → Handoff
 8. **Live verification** — `published_verified` requires the expected public version
    and routes, working Login and account binding, and verified Web Shop and Launcher
    outcomes.
-9. **Handoff** — repeat merchant ID, project ID, domain, Steam URL, and locale, with
-   evidence for every completed item.
+9. **Handoff** — repeat merchant ID, project ID, domain, locale, and Steam URL only
+   when one was supplied, with evidence for every completed item.
 
 Status values: `completed`, `placeholder`, `needs_input`, `needs_access`,
 `needs_human`, `blocked_capability`, `failed`.

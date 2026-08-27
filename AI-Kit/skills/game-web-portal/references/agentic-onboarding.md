@@ -4,26 +4,29 @@
 
 ### Input
 
-Collect missing values in one question:
+Collect missing required values in one question:
 
 ```yaml
 merchant_id:
 project_id:
 domain:
 game_name:
-store_url:
 primary_locale:
 existing_portal_policy: update | create-new
 ```
 
-Optional: approved brand assets, analytics IDs, and locales. Never invent or
-reuse partner identifiers, credentials, content, prices, assets, or URLs.
+Optional: `store_url` (Steam), approved game description and brand assets,
+analytics IDs, and locales. A Steam URL is a bootstrap shortcut and may be
+skipped; it is not a production dependency. Without it, approved metadata and
+assets must be supplied manually. Never invent or reuse partner identifiers,
+credentials, content, prices, assets, or URLs.
 
 ### Acceptance scenarios
 
-1. **Platform:** GIVEN a store URL, WHEN the exact host is
-   `store.steampowered.com`, THEN continue as PC; Mobile, unknown, invalid, or
-   spoofed hosts return `needs_input`.
+1. **Platform:** GIVEN no store URL, WHEN the title is confirmed as PC and
+   approved metadata/assets are supplied, THEN continue without Steam parsing.
+   GIVEN a store URL, its exact host must be `store.steampowered.com`; Mobile,
+   unknown, invalid, or spoofed supplied URLs return `needs_input`.
 2. **Existing portal:** GIVEN the domain exists, WHEN onboarding starts, THEN
    inspect and resume without duplicates; ambiguous matches require selection.
 3. **Access:** GIVEN a mutation returns `401/403`, WHEN work is partial, THEN
@@ -36,8 +39,8 @@ reuse partner identifiers, credentials, content, prices, assets, or URLs.
    evidence is missing, THEN Launcher is incomplete and publish-anyway is
    refused.
 7. **Handoff:** GIVEN the run ends, WHEN reporting, THEN repeat merchant ID,
-   project ID, domain, Steam URL, and locale with evidence for every Completed
-   item.
+   project ID, domain, locale, and Steam URL only if supplied, with evidence for
+   every Completed item.
 
 ## Design
 
@@ -69,7 +72,7 @@ flowchart LR
 
 | State | Required evidence | Stop condition |
 |---|---|---|
-| Preflight | CLI context, exact Steam host, domain search | Missing/ambiguous input |
+| Preflight | CLI context, PC confirmation, Steam host if supplied, domain search | Missing/ambiguous required input |
 | Discover | Existing IDs, supported type and skills | Unsupported structure |
 | Draft | Mutation response and read-back | Read-back mismatch |
 | Verify | Structure, preview, readiness result | Pending/failed verification |
@@ -93,7 +96,8 @@ Never recreate discovered existing entities.
 ### 1. Context
 
 - Confirm merchant/project, domain, locale, and create/update policy.
-- Validate exact Steam host.
+- Confirm PC scope. Validate the exact Steam host only when `store_url` is supplied.
+- If `store_url` is omitted, confirm approved metadata and assets are available.
 - Resolve ambiguity and disclose unsupported/human gates.
 
 ### 2. Existing state
@@ -156,7 +160,7 @@ Overall status:
 - Merchant ID:
 - Project ID:
 - Domain:
-- Steam URL:
+- Steam URL (optional; include only if supplied):
 - Primary locale:
 
 ## Sections
