@@ -39,16 +39,6 @@ manual verification step was also required.
 | Verify Launcher readiness | Removed from prototype scope because no owned build existed | `GET /ui/{landingId}/launcherList`; no create/build/upload API | No | Partial |
 | Enforce publication gate | Stopped at verified Preview | No publication call; `POST /landing/{domain}/publication` intentionally skipped | No | Done |
 
-### Not completed
-
-- Shop Builder MCP was unavailable; no live MCP tool execution was claimed.
-- Daily Rewards creation failed through CLI with HTTP 500 and required the
-  documented federated-block REST pipeline.
-- The generated readiness CLI command used the wrong HTTP method; direct
-  `POST /check` was required.
-- Launcher lacked an owned build, installer, and verified download.
-- Publication and live-site verification were intentionally not executed.
-
 ## Repository structure
 
 The same workflow is packaged twice, once for each place the skill can be installed
