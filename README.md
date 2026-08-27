@@ -2,16 +2,22 @@
 
 ## What Agentic Onboarding is
 
-Onboarding done by an AI agent instead of a person clicking through a dashboard.
-You give the agent a Steam store URL and your identifiers. It drives Xsolla CLI to
-create or resume your Game Web Portal, checks the result of every change it makes,
-and hands back a report you can audit line by line.
+Instead of asking users to configure everything manually in a dashboard, onboarding is handled by an AI agent.
 
-What makes it trustworthy is a single rule: **the agent reports only what it
-verified.** It never invents an ID, a command, a price, or a completion. Anything it
-could not finish is named explicitly, with the reason and whose job it is to fix.
-Honest partial completion is the expected outcome; a clean-looking report that
-wasn't verified is a failure.
+The user provides a Steam Store URL and the required identifiers. From there, the agent uses the Xsolla CLI to create a new Game Web Portal or resume an existing setup. At every step, it validates the outcome before proceeding and produces a detailed, auditable report of everything it did.
+
+### Designed for trust
+The core principle is simple: the agent reports only what it has verified.
+
+It does not guess or fabricate IDs, commands, prices, configuration states, or successful completions. If a task cannot be completed, the report clearly states:
+
+- What was not completed
+
+- Why it could not be completed
+
+- Who needs to take the next action
+
+Partial completion is acceptable—and often expected. A transparent report that accurately reflects the current state is more valuable than a polished success report built on unverified assumptions.
 
 The workflow is **spec-anchored**, following [Understanding
 Spec-Driven-Development](https://martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html):
