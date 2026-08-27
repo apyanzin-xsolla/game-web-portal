@@ -18,32 +18,36 @@ Spec-Driven-Development](https://martinfowler.com/articles/exploring-gen-ai/sdd-
 stable agent rules plus a living, testable workflow updated in small verified
 steps.
 
-## How to use it
+## Verified implementation
 
-Install the skill from inside either folder, authenticate, then ask:
+`CLI` means the capability was executed through Xsolla CLI. `AI Kit` means its
+skill was used as the operating instruction. `Partial` means direct REST or a
+manual verification step was also required.
 
-```bash
-xsolla skills install --from . game-web-portal
-xsolla auth login
-```
+| Use case checked | What we achieved | API method used | CLI | AI Kit |
+|---|---|---|:---:|:---:|
+| Resume the existing portal without duplicates | Home and native block order configured | `GET /landings`; `GET /landing/{domain}/structure`; `PATCH /ui/{landingId}/batch` | Done | Done |
+| Apply a consistent CS2 theme and imagery | Matching colors, buttons, and 49 native image slots | Multipart asset upload; `PATCH /ui/{landingId}/batch` | Done | Done |
+| Create a visible demo catalog | Five free demo items and one $1 sandbox item | Store Admin `POST /items/groups`; `POST /items/virtual_items`; Storefront `GET` | Done | Done |
+| Render the native Store | One vertical section connected to `cs2-demo-items` | `POST /ui/{landingId}/page/{pageId}/block`; batch `PATCH` | Done | Done |
+| Create Daily Rewards data | Five reward items and five-day chain `2717` | Store Admin `POST /items/virtual_items`; `POST /admin/daily_chain`; `GET /admin/daily_chain/{id}` | Done | Done |
+| Render default Daily Rewards | `sb-daily-reward` `0.9.4` connected to chain `2717` | Block registry + `default-data.json`; `POST /landing/{domain}/blocks`; batch `PATCH` | No | Partial |
+| Authenticate a player | Login project connected; registration, confirmation, and sign-in passed | Login project `GET`; registration/auth APIs; Shop Builder structure `GET` | Partial | Done |
+| Verify player commerce | Free item acquisition and Day 1 reward claim passed | Rendered Store/LiveOps APIs; exact browser methods were not captured | Partial | Done |
+| Open safe paid checkout | $1 Pay Station sandbox handoff passed | Store Admin item `POST`; sandbox batch `PATCH`; Pay Station redirect | Partial | Done |
+| Validate readiness | Home and preserved drafts reached zero page errors | `POST /landing/{domain}/check`; batch `PATCH` | Partial | Done |
+| Verify Launcher readiness | Removed from prototype scope because no owned build existed | `GET /ui/{landingId}/launcherList`; no create/build/upload API | No | Partial |
+| Enforce publication gate | Stopped at verified Preview | No publication call; `POST /landing/{domain}/publication` intentionally skipped | No | Done |
 
-```text
-Use Xsolla CLI to set up my PC Game Portal.
-```
+### Not completed
 
-The agent asks for `merchant_id`, `project_id`, `domain`, `game_name`, `store_url`,
-`primary_locale`, and whether an existing portal should be updated or replaced — all
-in one question — then works through this flow:
-
-```text
-Intake → Preflight → Discover → Draft → Verify → Human review →
-Publish → Live verification → Handoff
-```
-
-It stops and asks whenever access needs renewing, an existing entity is ambiguous, a
-change would be destructive, the CLI lacks a needed capability, or publication must
-happen in Publisher Account. Progress is preserved, so a resumed run continues rather
-than rebuilding.
+- Shop Builder MCP was unavailable; no live MCP tool execution was claimed.
+- Daily Rewards creation failed through CLI with HTTP 500 and required the
+  documented federated-block REST pipeline.
+- The generated readiness CLI command used the wrong HTTP method; direct
+  `POST /check` was required.
+- Launcher lacked an owned build, installer, and verified download.
+- Publication and live-site verification were intentionally not executed.
 
 ## Repository structure
 
@@ -143,33 +147,28 @@ end-to-end verification is pending.
 
 ## Validation summary
 
-I evaluated the workflow on four hard PC onboarding scenarios with three
-variants and three repetitions per case (`36` runs total).
+I evaluated production-readiness answer quality on five PC onboarding scenarios:
+demo evidence boundaries, Login/rewards/checkout, Launcher, readiness with preserved
+draft pages, and authentication/tool boundaries.
+
+The comparison used three variants and three repetitions per case (`45` runs):
+
+- Agent model: `claude-fable-5`
+- Judge model: `claude-sonnet-5`
+- Pass threshold: `90%`
+- Evidence: transcript, LLM judge, and programmatic safety checks
 
 | Metric | Game Web Portal skill | Official docs | No context |
 |---|---:|---:|---:|
-| Success rate | **100% (12/12)** | 100% (12/12) | 50% (6/12) |
-| First-try success | 100% | 100% | 50% |
-| pass@3 | 100% | 100% | 50% |
-| Judge confidence | 100% | 99.3% | 85.3% |
-| Safety errors | **0** | 0 | 0 |
+| Success rate | **86.7% (13/15)** | 46.7% (7/15) | 20.0% (3/15) |
+| First-try success | **100%** | 0% | 20% |
+| pass@3 | **100%** | 100% | 40% |
+| Judge confidence | **100%** | 93.3% | 87.3% |
+| Safety errors | 3 | 5 | 3 |
+| Mean tokens | 6,212 | 1,778 | 1,098 |
 
-My spec-anchored guide passed all 12 hard-case runs and reduced mean token usage
-to `1.41×` official docs, meeting the `≤1.5×` target.
-
-I also verified local skill installation and ran a live smoke check against an
-existing portal:
-
-- Website discovery and structure read: passed.
-- Preview enablement and preview-link generation: passed.
-- Public preview URL: HTTP 403.
-- `verify-website`: HTTP 400 because the CLI request omits required
-  `draftPagesIds`.
-
-These are CLI integration gaps, not onboarding-spec failures.
-
-## Evals dashboard
-
-I generated this dashboard from the same 36-run assessment:
-
-![My Xsolla Game Web Portal Evals dashboard](game-web-portal-evals-dashboard.png)
+The skill improved success by `+40.0` percentage points versus official docs and
+`+66.7` points versus no context. It did not pass every production case: the
+Launcher case passed only one of three repetitions, and the skill had three safety
+errors. The result demonstrates better production-readiness reasoning, not proof
+that the sandbox portal is production-ready.
